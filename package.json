@@ -1,0 +1,23 @@
+{
+  "name": "legacy-link-dashboard",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "dev": "concurrently \"vite --no-open\" \"wait-on http://localhost:5173 && electron .\""
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "mdb-reader": "^3.2.0",
+    "sqlite3": "^6.0.1",
+    "vue": "^3.5.13",
+    "vue-chartjs": "^5.3.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "concurrently": "^9.1.0",
+    "electron": "^33.2.1",
+    "electron-is-dev": "^3.0.1",
+    "vite": "^6.0.1",
+    "wait-on": "^8.0.1"
+  }
+}
