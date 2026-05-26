@@ -10,6 +10,10 @@
         <div class="nav-item">📦 Inventory</div>
         <div class="nav-item">📈 Analytics</div>
       </nav>
+
+      <footer class="sidebar-map-footer">
+        <DashboardMap :locations="locations" />
+      </footer>
     </aside>
 
     <main class="main-canvas">
@@ -36,81 +40,79 @@
               <button @click.stop="resetSelection" class="btn-header-disconnect">DISCONNECT</button>
             </template>
           </div>
-
-          <div class="header-insight-subtext">
-            <div v-if="mainTableInfo.name" class="status-active-logic">
-              {{ mainTableInfo.name === 'DRDetails' ? 'Production - Ready to process Block/Phase weights.' : 'Issuance - Ready to track material costs.' }}
-            </div>
-            <div v-else class="status-empty-logic">Connect a database to view system logic.</div>
-          </div>
         </div>
       </header>
 
-      <section class="workspace">
-        <div class="toolbar">
-          <div class="date-picker-group">
-            <div class="input-field"><label>Start Date</label><input type="date" v-model="dateRange.start" /></div>
-            <div class="input-field"><label>End Date</label><input type="date" v-model="dateRange.end" /></div>
-            <button class="btn-green" style="background-color: #145214; border-color: #0e3a0e;" @click="handleExecuteGo">GO</button>
-            <button class="btn-green" @click="handleExecuteFiltered">Filter by Date</button>
-            <button class="btn-green" @click="handleExecuteBlocks">Check Block Data</button> 
-          </div>
-        </div>
-
-        <div v-if="isMigrating" class="spinner-overlay">
-          <div class="sync-spinner"></div>
-          <h3>Syncing database schema, please wait...</h3>
-        </div>
-
-        <div v-else class="dashboard-grid">
-          <div class="card main-graph-card">
-            <div class="card-header"><h3>Graph Visualization - 1</h3></div>
-            <div class="chart-container-frame">
-              <div v-if="matchedRecords?.length" style="height: 100%; width: 100%; position: relative;">
-                <Line v-if="activeViewType === 'dates'" :data="lineChartData" :options="chartOptions" />
-                <Bar v-slot="bar" v-if="activeViewType === 'blocks'" :data="barChartData" :options="chartOptions" />
+      <section :class="['workspace', { 'workspace-empty-state': !detectedType }]">
+        
+        <template v-if="detectedType">
+          <div class="toolbar">
+            <div class="date-picker-group">
+              <div class="input-field">
+                <label>Start Date</label>
+                <input type="date" v-model="dateRange.start" />
               </div>
-              <div v-else class="empty-state-card-message">No active data loaded. Apply a filter runtime context module above.</div>
-            </div>
-          </div>
-
-          <div class="card graph-stack-card">
-            <div class="stack-section">
-              <div class="stack-header">
-                <h4>Daily Trends (Invoices)</h4>
-                <span v-if="activeViewType === 'dates'" class="active-dot"></span>
+              <div class="input-field">
+                <label>End Date</label>
+                <input type="date" v-model="dateRange.end" />
               </div>
-              <div class="mini-chart-frame">
-                <Line v-if="matchedRecords?.length" :data="lineChartData" :options="miniChartOptions" />
-                <div v-else class="mini-empty">No active dataset</div>
-              </div>
-            </div>
-            
-            <div class="stack-section">
-              <div class="stack-header">
-                <h4>Structural Block Aggregations</h4>
-                <span v-if="activeViewType === 'blocks'" class="active-dot"></span>
-              </div>
-              <div class="mini-chart-frame">
-                <Bar v-if="matchedRecords?.length" :data="barChartData" :options="miniChartOptions" />
-                <div v-else class="mini-empty">No active dataset</div>
+              <button class="btn-green" style="background-color: #145214; border-color: #0e3a0e;" @click="handleLoadDashboardData">GO</button>
+              
+              <div class="right-aligned-metrics">
+                <DashboardMetrics 
+                  :date-range="dateRange"
+                  :total-amount="totalAmount"
+                  :main-table-info="mainTableInfo"
+                  :matched-records-length="matchedRecords?.length || 0"
+                />
               </div>
             </div>
           </div>
 
-          <DashboardMetrics 
-            :date-range="dateRange"
-            :total-amount="totalAmount"
-            :main-table-info="mainTableInfo"
-            :matched-records-length="matchedRecords?.length || 0"
-          />
-          <DashboardTop10 
-            :matched-records="matchedRecords"
-            :active-view-type="activeViewType"
-          />
-          <DashboardMap :locations="locations" />
+          <div v-if="isMigrating" class="spinner-overlay">
+            <div class="sync-spinner"></div>
+            <h3>Syncing database schema, please wait...</h3>
+          </div>
 
-        </div>
+          <div v-else class="workspace-body-layout">
+            <div class="dashboard-columns-container">
+              <div class="left-charts-column">
+                  <DashboardLineGraph :chart-data="lineChartData" :options="chartOptions" />
+                  <DashboardBarGraph :chart-data="barChartData" :options="chartOptions" />
+              </div>
+              
+              <div class="right-metrics-column">
+                <DashboardTop10 
+                  :matched-records="matchedRecords" 
+                  :active-view-type="activeViewType" 
+                  :main-table-info="mainTableInfo" 
+                />
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="empty-splash-card">
+            <div class="splash-branding">
+              <div v-if="isMigrating" class="splash-spinner-box">
+                <div class="sync-spinner"></div>
+              </div>
+              <img v-else src="/sodaco.png" class="splash-logo animate-pulse" />
+
+              <h1 class="splash-title">
+                {{ isMigrating ? 'SYNCING DATA' : 'COMPANY LOGO' }}
+              </h1>
+              <p class="splash-lead">
+                {{ isMigrating ? 'Parsing schemas and migrating tables...' : 'System dashboard is offline.' }}
+              </p>
+              
+              <div class="splash-action-badge">
+                {{ isMigrating ? '⚡ Please keep this application open until compilation finishes' : (selectedPath ? '⚠️ Click "SYNC DATABASE" above to initialize schemas' : '📂 Please connect a local database structure to begin data mapping') }}
+              </div>
+            </div>
+          </div>
+        </template>
 
       </section>
     </main>
@@ -122,8 +124,9 @@
   import { useMigration } from './composables/useMigration'
   import { useAnalysis } from './composables/useAnalysis'
   import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js'
-  import { Line, Bar } from 'vue-chartjs'
   
+  import DashboardLineGraph from './components/DashboardLineGraph.vue'
+  import DashboardBarGraph from './components/DashboardBarGraph.vue'
   import DashboardMetrics from './components/DashboardMetrics.vue'
   import DashboardTop10 from './components/DashboardTop10.vue'
   import DashboardMap from './components/DashboardMap.vue'
@@ -136,14 +139,48 @@
   } = useMigration()
 
   const {
-    dateRange, totalAmount, matchedRecords, activeViewType,
-    handleExecuteGo, handleExecuteFiltered, handleExecuteBlocks, clearAnalysisData
+    dateRange, totalAmount, matchedRecords, blockRecords, activeViewType,
+    handleExecuteFiltered, handleExecuteBlocks, clearAnalysisData
   } = useAnalysis(detectedType)
 
+  const setDefaultCurrentMonth = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    dateRange.start = `${year}-${month}-01`
+    const lastDay = new Date(year, now.getMonth() + 1, 0).getDate()
+    dateRange.end = `${year}-${month}-${lastDay}`
+  }
+  setDefaultCurrentMonth()
+
+  const handleLoadDashboardData = async () => {
+    if (!detectedType.value) return
+    await handleExecuteFiltered()
+    await handleExecuteBlocks()
+  }
+
+  watch(isMigrating, (newIsMigrating, oldIsMigrating) => {
+    if (oldIsMigrating && !newIsMigrating && selectedPath.value) {
+      handleLoadDashboardData()
+    }
+  })
+
+  watch(detectedType, (newProfile) => {
+    if (!newProfile) {
+      clearAnalysisData()
+    } else {
+      handleLoadDashboardData()
+    }
+  })
+
   const lineChartData = computed(() => {
-    const limitedList = matchedRecords.value?.slice(0, 50) || []
+    const rawList = matchedRecords.value || []
+    const sortedList = [...rawList].sort((a, b) => new Date(a.date) - new Date(b.date))
     return {
-      labels: limitedList.map(item => item.date),
+      labels: sortedList.map(item => {
+        if (!item.date || item.date === 'N/A') return 'N/A'
+        return new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: '2-digit' })
+      }),
       datasets: [{
         label: 'Invoices',
         backgroundColor: 'rgba(16, 185, 129, 0.04)',
@@ -151,13 +188,14 @@
         pointBackgroundColor: '#064e3b',
         borderWidth: 2,
         tension: 0.2, 
-        data: limitedList.map(item => item.value)
+        data: sortedList.map(item => item.value)
       }]
     }
   })
 
   const barChartData = computed(() => {
-    const limitedList = matchedRecords.value?.slice(0, 30) || []
+    const dataSource = blockRecords?.value || matchedRecords.value || []
+    const limitedList = dataSource.slice(0, 50)
     return {
       labels: limitedList.map(item => item.identifier),
       datasets: [{
@@ -178,90 +216,71 @@
       x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10, weight: '500' } } }
     }
   }
-
-  const miniChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: { enabled: true } },
-    scales: {
-      y: { display: false, grid: { display: false } },
-      x: { display: false, grid: { display: false } }
-    }
-  }
-
-  watch(detectedType, (newProfile) => {
-    if (!newProfile) clearAnalysisData()
-  })
 </script>
 
 <style scoped>
-/* --- 1. CORE LAYOUT --- */
-.app-layout { display: flex; height: 100vh; width: 100vw; background: #f4f6f9; color: #111827; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+/* --- CORE CANVAS & SIDEBAR TRACKING --- */
+.app-layout { display: flex; height: 100vh; width: 100vw; background: #f4f6f9; color: #111827; font-family: -apple-system, sans-serif; overflow: hidden; }
 .main-canvas { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-/* --- 2. SIDEBAR --- */
-.sidebar { width: 240px; background: #ffffff; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; padding: 1.5rem 1rem; box-sizing: border-box; }
-.logo-area { display: flex; align-items: center; gap: 12px; margin-bottom: 2.5rem; font-weight: 800; font-size: 1.1rem; color: #1f2937; letter-spacing: -0.5px; }
-.nav-stack { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-.nav-item { padding: 12px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; color: #4b5563; transition: 0.2s ease; font-size: 0.9rem; }
+.sidebar { width: 240px; background: #fff; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; padding: 1.5rem 1rem 2.5rem 1rem; box-sizing: border-box; position: relative; }
+.logo-area { display: flex; align-items: center; gap: 12px; margin-bottom: 2.5rem; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.5px; }
+.nav-stack { flex: 1; display: flex; flex-direction: column; gap: 4px; margin-bottom: 190px; }
+.nav-item { padding: 12px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; color: #4b5563; font-size: 0.9rem; transition: 0.2s; }
 .nav-item:hover { background: #f3f4f6; color: #1f2937; }
 .nav-item.active { background: #f3f4f6; color: #111827; font-weight: 700; }
 
-/* --- 3. TOP HEADER BANNER --- */
-.top-header-banner { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 12px 2.5rem; border-bottom: 1px solid #e5e7eb; min-height: 80px; box-sizing: border-box; }
-.title-context .main-title { font-size: 1.3rem; font-weight: 700; color: #111827; margin: 0; letter-spacing: -0.5px; }
+/* --- COMPACT MAP FOOTER WITH BOUNDARY ESCAPE SAFEGUARDS --- */
+.sidebar-map-footer { position: absolute; bottom: 2rem; left: 1rem; right: 1rem; height: 160px; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: #fafafa; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+
+/* --- HEADER BANNER & SYSTEM STATS --- */
+.top-header-banner { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 12px 2.5rem; border-bottom: 1px solid #e5e7eb; min-height: 80px; box-sizing: border-box; }
+.title-context .main-title { font-size: 1.3rem; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
 .title-context .empty-title { color: #6b7280; font-weight: 600; }
 .title-type-label { font-size: 0.95rem; color: #6b7280; font-weight: 500; }
-
-/* --- 4. HEADER SYSTEM CONTROLS --- */
 .header-control-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .db-connection-manager { display: flex; align-items: center; gap: 10px; background: #f3f4f6; padding: 4px; border-radius: 30px; }
-.db-status-pill { display: flex; align-items: center; gap: 8px; background: #ffffff; padding: 6px 14px; border-radius: 20px; border: 1px solid #e5e7eb; font-size: 0.8rem; font-weight: 700; color: #065f46; max-width: 180px; }
-.status-dot { width: 7px; height: 7px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
+.db-status-pill { display: flex; align-items: center; gap: 8px; background: #fff; padding: 6px 14px; border-radius: 20px; border: 1px solid #e5e7eb; font-size: 0.8rem; font-weight: 700; color: #065f46; max-width: 180px; }
+.status-dot { width: 7px; height: 7px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
 .filename-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.header-insight-subtext { font-size: 0.75rem; font-weight: 600; padding-right: 6px; }
-.status-active-logic { color: #b45309; }
-.status-empty-logic { color: #9ca3af; font-style: italic; }
-
-.btn-header-browse { background: #064e3b; color: #ffffff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
+/* --- BUTTON ACCENTS --- */
+.btn-header-browse, .btn-header-sync, .btn-header-disconnect { border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; cursor: pointer; color: #fff; }
+.btn-header-browse { background: #064e3b; padding: 8px 16px; }
 .btn-header-browse:hover { background: #065f46; }
-.btn-header-sync { background: #2563eb; color: #ffffff; border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
+.btn-header-sync { background: #2563eb; }
 .btn-header-sync:hover { background: #1d4ed8; }
-.btn-header-disconnect { background: #ef4444; color: #ffffff; border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
+.btn-header-disconnect { background: #ef4444; }
 .btn-header-disconnect:hover { background: #dc2626; }
 
-/* --- 5. WORKSPACE HUB LAYOUT --- */
-.workspace { padding: 2rem 2.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; }
-.toolbar { background: #ffffff; padding: 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; }
-.date-picker-group { display: flex; gap: 12px; align-items: flex-end; }
+/* --- WORKSPACE CORE CONTROLS --- */
+.workspace { padding: 1rem 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; }
+.workspace-empty-state { background-color: #f4f6f9; justify-content: center; }
+.toolbar { background: #fff; padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; display: flex; align-items: center; box-sizing: border-box; width: 100%; }
+.date-picker-group { display: flex; gap: 14px; align-items: flex-end; width: 100%; }
 .input-field { display: flex; flex-direction: column; gap: 4px; }
 .input-field label { font-size: 0.65rem; font-weight: 700; color: #6b7280; text-transform: uppercase; }
-.input-field input { border: 1px solid #d1d5db; padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; color: #374151; }
-
-.btn-green { background: #064e3b; color: #ffffff; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+.input-field input { border: 1px solid #d1d5db; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; color: #374151; height: 32px; box-sizing: border-box; }
+.btn-green { background: #064e3b; color: #fff; border: none; padding: 0 18px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; height: 32px; display: inline-flex; align-items: center; }
 .btn-green:hover { opacity: 0.9; }
+.right-aligned-metrics { margin-left: auto; display: flex; align-items: center; }
 
-/* --- 6. OVERLAY --- */
-.spinner-overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 350px; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; gap: 1rem; }
+/* --- WORKSPACE GRID MATRIX --- */
+.workspace-body-layout { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+.dashboard-columns-container { display: flex; gap: 20px; width: 100%; align-items: stretch; }
+.left-charts-column { flex: 0 0 70%; display: flex; flex-direction: column; gap: 20px; min-width: 0; height: 660px; }
+.right-metrics-column { flex: 0 0 30%; min-width: 0; display: flex; flex-direction: column; max-height: 660px; overflow: hidden; }
+
+/* --- SPLASH SCREEN & LOADING OVERLAYS --- */
+.empty-splash-card { width: 100%; display: flex; align-items: center; justify-content: center; text-align: center; box-sizing: border-box; }
+.splash-branding { display: flex; flex-direction: column; align-items: center; max-width: 440px; }
+.splash-logo { width: 95px; height: auto; opacity: 0.65; margin-bottom: 1.5rem; filter: grayscale(100%); }
+.splash-spinner-box { width: 95px; height: 95px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+.splash-title { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 0.25rem 0; }
+.splash-lead { font-size: 0.9rem; font-weight: 500; color: #6b7280; margin: 0 0 1.75rem 0; }
+.splash-action-badge { font-size: 0.8rem; font-weight: 600; color: #4b5563; line-height: 1.5; background: #fff; padding: 12px 20px; border-radius: 10px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+.spinner-overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 350px; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; gap: 1rem; }
 .sync-spinner { width: 45px; height: 45px; border: 4px solid #f3f4f6; border-top-color: #059669; border-radius: 50%; animation: spin 1s linear infinite; }
+.animate-pulse { animation: pulse-keyframe 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes pulse-keyframe { 0%, 100% { opacity: .65; transform: scale(1); } 50% { opacity: .35; transform: scale(0.97); } }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* --- 7. GRID CARDS FRAMEWORK --- */
-.dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; box-sizing: border-box; }
-.card { background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 1.5rem; box-sizing: border-box; }
-
-.main-graph-card { grid-column: span 2; display: flex; flex-direction: column; gap: 1rem; height: 333px; }
-.card-header h3 { font-size: 1.05rem; font-weight: 700; color: #111827; margin: 0; }
-.chart-container-frame { flex: 1; position: relative; height: 100%; min-width: 0; }
-.empty-state-card-message { display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; color: #9ca3af; font-size: 0.8rem; font-weight: 500; border: 1px dashed #e5e7eb; border-radius: 8px; padding: 1rem; box-sizing: border-box; }
-
-.graph-stack-card { display: flex; flex-direction: column; justify-content: space-between; gap: 16px; height: 333px; padding: 1.25rem; }
-.stack-section { flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
-.stack-header { display: flex; justify-content: space-between; align-items: center; }
-.stack-section h4 { margin: 0; font-size: 0.8rem; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px; }
-.active-dot { width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
-.mini-chart-frame { flex: 1; background: #f9fafb; border-radius: 6px; border: 1px solid #f3f4f6; padding: 6px; position: relative; min-height: 0; }
-.mini-empty { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 0.75rem; color: #9ca3af; font-style: italic; }
-
 </style>

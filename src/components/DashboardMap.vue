@@ -33,9 +33,12 @@ const mapDetails = computed(() => {
 </script>
 
 <style scoped>
-.map-panel-card { display: flex; flex-direction: column; height: 220px; padding: 0 !important; overflow: hidden; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; }
+/* CHANGED: Changed height from 220px to 100% so it fits perfectly inside the sidebar footer frame */
+.map-panel-card { display: flex; flex-direction: column; height: 100%; padding: 0 !important; overflow: hidden; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; }
 .map-container { position: relative; flex: 1; width: 100%; background: #f9fafb; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.map-image { width: 100%; height: 100%; object-fit: contain; background-color: #f0f2f5; }
+
+/* CHANGED: Changed object-fit to 'cover' so your asset fills the window completely without bottom gaps */
+.map-image { width: 100%; height: 100%; object-fit: cover; background-color: #f0f2f5; }
 .empty-state { color: #9ca3af; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
 
 /* Floating Logo Button Layout */
