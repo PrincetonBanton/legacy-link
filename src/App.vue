@@ -3,12 +3,12 @@
     <aside class="sidebar">
       <div class="logo-area">
         <img src="/sodaco.png" style="width: 45px;" />
-        <span class="logo-text">COMPANY LOGO</span>
+        <!-- <span class="logo-text">COMPANY LOGO</span> -->
       </div>
       <nav class="nav-stack">
-        <div class="nav-item active">⚙️ Dashboard</div>
-        <div class="nav-item">📦 Inventory</div>
-        <div class="nav-item">📈 Analytics</div>
+        <div class="nav-item active">O-- Dashboard</div>
+        <div class="nav-item">O-- Inventory</div>
+        <div class="nav-item">O-- Analytics</div>
       </nav>
 
       <footer class="sidebar-map-footer">
@@ -17,6 +17,7 @@
     </aside>
 
     <main class="main-canvas">
+
       <header class="top-header-banner">
         <div class="title-context">
           <h2 v-if="detectedType || locations.length" class="main-title">
@@ -41,11 +42,13 @@
             </template>
           </div>
         </div>
+
       </header>
 
       <section :class="['workspace', { 'workspace-empty-state': !detectedType }]">
         
         <template v-if="detectedType">
+
           <div class="toolbar">
             <div class="date-picker-group">
               <div class="input-field">
@@ -83,7 +86,7 @@
               
               <div class="right-metrics-column">
                 <DashboardTop10 
-                  :matched-records="matchedRecords" 
+                  :matched-records="blockRecords" 
                   :active-view-type="activeViewType" 
                   :main-table-info="mainTableInfo" 
                 />
@@ -93,25 +96,7 @@
         </template>
 
         <template v-else>
-          <div class="empty-splash-card">
-            <div class="splash-branding">
-              <div v-if="isMigrating" class="splash-spinner-box">
-                <div class="sync-spinner"></div>
-              </div>
-              <img v-else src="/sodaco.png" class="splash-logo animate-pulse" />
-
-              <h1 class="splash-title">
-                {{ isMigrating ? 'SYNCING DATA' : 'COMPANY LOGO' }}
-              </h1>
-              <p class="splash-lead">
-                {{ isMigrating ? 'Parsing schemas and migrating tables...' : 'System dashboard is offline.' }}
-              </p>
-              
-              <div class="splash-action-badge">
-                {{ isMigrating ? '⚡ Please keep this application open until compilation finishes' : (selectedPath ? '⚠️ Click "SYNC DATABASE" above to initialize schemas' : '📂 Please connect a local database structure to begin data mapping') }}
-              </div>
-            </div>
-          </div>
+          <DashboardSplash :is-migrating="isMigrating" :selected-path="selectedPath" />
         </template>
 
       </section>
@@ -130,6 +115,7 @@
   import DashboardMetrics from './components/DashboardMetrics.vue'
   import DashboardTop10 from './components/DashboardTop10.vue'
   import DashboardMap from './components/DashboardMap.vue'
+  import DashboardSplash from './components/DashboardSplash.vue' // Imported here
   
   ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement)
 
@@ -182,7 +168,7 @@
         return new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: '2-digit' })
       }),
       datasets: [{
-        label: 'Invoices',
+        label: 'Invoices Released (Trend)',
         backgroundColor: 'rgba(16, 185, 129, 0.04)',
         borderColor: '#10b981',
         pointBackgroundColor: '#064e3b',
@@ -194,15 +180,14 @@
   })
 
   const barChartData = computed(() => {
-    const dataSource = blockRecords?.value || matchedRecords.value || []
-    const limitedList = dataSource.slice(0, 50)
+    const dataSource = blockRecords?.value || []
     return {
-      labels: limitedList.map(item => item.identifier),
+      labels: dataSource.map(item => item.identifier),
       datasets: [{
-        label: 'Blocks',
+        label: 'Volume per Block',
         backgroundColor: '#3b82f6',
         borderRadius: 4,
-        data: limitedList.map(item => item.value)
+        data: dataSource.map(item => item.value)
       }]
     }
   })
@@ -230,7 +215,7 @@
 .nav-item.active { background: #f3f4f6; color: #111827; font-weight: 700; }
 
 /* --- COMPACT MAP FOOTER WITH BOUNDARY ESCAPE SAFEGUARDS --- */
-.sidebar-map-footer { position: absolute; bottom: 2rem; left: 1rem; right: 1rem; height: 160px; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: #fafafa; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.sidebar-map-footer { position: absolute; bottom: 2rem; left: 1rem; right: 1rem; height: auto; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: #fafafa; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 
 /* --- HEADER BANNER & SYSTEM STATS --- */
 .top-header-banner { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 12px 2.5rem; border-bottom: 1px solid #e5e7eb; min-height: 80px; box-sizing: border-box; }
@@ -260,7 +245,7 @@
 .input-field { display: flex; flex-direction: column; gap: 4px; }
 .input-field label { font-size: 0.65rem; font-weight: 700; color: #6b7280; text-transform: uppercase; }
 .input-field input { border: 1px solid #d1d5db; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; color: #374151; height: 32px; box-sizing: border-box; }
-.btn-green { background: #064e3b; color: #fff; border: none; padding: 0 18px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; height: 32px; display: inline-flex; align-items: center; }
+.btn-green { background: #064e3b; color: #fff; border: none; padding: 0 30px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; height: 32px; display: inline-flex; align-items: center; }
 .btn-green:hover { opacity: 0.9; }
 .right-aligned-metrics { margin-left: auto; display: flex; align-items: center; }
 
@@ -271,16 +256,7 @@
 .right-metrics-column { flex: 0 0 30%; min-width: 0; display: flex; flex-direction: column; max-height: 660px; overflow: hidden; }
 
 /* --- SPLASH SCREEN & LOADING OVERLAYS --- */
-.empty-splash-card { width: 100%; display: flex; align-items: center; justify-content: center; text-align: center; box-sizing: border-box; }
-.splash-branding { display: flex; flex-direction: column; align-items: center; max-width: 440px; }
-.splash-logo { width: 95px; height: auto; opacity: 0.65; margin-bottom: 1.5rem; filter: grayscale(100%); }
-.splash-spinner-box { width: 95px; height: 95px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
-.splash-title { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 0.25rem 0; }
-.splash-lead { font-size: 0.9rem; font-weight: 500; color: #6b7280; margin: 0 0 1.75rem 0; }
-.splash-action-badge { font-size: 0.8rem; font-weight: 600; color: #4b5563; line-height: 1.5; background: #fff; padding: 12px 20px; border-radius: 10px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
 .spinner-overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 350px; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; gap: 1rem; }
 .sync-spinner { width: 45px; height: 45px; border: 4px solid #f3f4f6; border-top-color: #059669; border-radius: 50%; animation: spin 1s linear infinite; }
-.animate-pulse { animation: pulse-keyframe 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-@keyframes pulse-keyframe { 0%, 100% { opacity: .65; transform: scale(1); } 50% { opacity: .35; transform: scale(0.97); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
