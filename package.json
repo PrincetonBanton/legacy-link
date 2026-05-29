@@ -6,6 +6,7 @@
     "dev": "concurrently \"vite --no-open\" \"wait-on http://localhost:5173 && electron .\""
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
     "chart.js": "^4.5.1",
     "mdb-reader": "^3.2.0",
     "sqlite3": "^6.0.1",

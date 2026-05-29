@@ -2,7 +2,7 @@
   <div class="card map-panel-card">
   <a v-if="mapDetails.coords" :href="`https://www.google.com/maps?q=${mapDetails.coords}`" target="_blank" class="google-header-logo" title="Open in Google Maps">
     <img src="/google-maps-icon.png" alt="Google Maps" class="logo-icon" />
-    <span>SEE GOOGLE EARTH</span>
+    <span>SATELLITE MAP</span>
   </a>
     
     <div class="map-container">

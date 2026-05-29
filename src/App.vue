@@ -3,7 +3,6 @@
     <aside class="sidebar">
       <div class="logo-area">
         <img src="/sodaco.png" style="width: 45px;" />
-        <!-- <span class="logo-text">COMPANY LOGO</span> -->
       </div>
       <nav class="nav-stack">
         <div class="nav-item active">O-- Dashboard</div>
@@ -59,7 +58,23 @@
                 <label>End Date</label>
                 <input type="date" v-model="dateRange.end" />
               </div>
-              <button class="btn-green" style="background-color: #145214; border-color: #0e3a0e;" @click="handleLoadDashboardData">GO</button>
+              
+              <button 
+                class="btn-green" 
+                style="background-color: #145214; border-color: #0e3a0e;" 
+                @click="handleLoadDashboardData"
+              >
+                GO
+              </button>
+
+              <button 
+                v-if="matchedRecords && matchedRecords.length > 0"
+                class="btn-cloud-publish" 
+                @click="handlePublishToCloud"
+                :disabled="isSyncing"
+              >
+                {{ isSyncing ? '☁ Publishing...' : '☁ PUBLISH TO PORTAL' }}
+              </button>
               
               <div class="right-aligned-metrics">
                 <DashboardMetrics 
@@ -108,6 +123,7 @@
   import { computed, watch } from 'vue'
   import { useMigration } from './composables/useMigration'
   import { useAnalysis } from './composables/useAnalysis'
+  import { useCloudSync } from './composables/useCloudSync'
   import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js'
   
   import DashboardLineGraph from './components/DashboardLineGraph.vue'
@@ -115,7 +131,7 @@
   import DashboardMetrics from './components/DashboardMetrics.vue'
   import DashboardTop10 from './components/DashboardTop10.vue'
   import DashboardMap from './components/DashboardMap.vue'
-  import DashboardSplash from './components/DashboardSplash.vue' // Imported here
+  import DashboardSplash from './components/DashboardSplash.vue'
   
   ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement)
 
@@ -129,6 +145,8 @@
     handleExecuteFiltered, handleExecuteBlocks, clearAnalysisData
   } = useAnalysis(detectedType)
 
+  const { uploadHistoricalData, isSyncing } = useCloudSync()
+
   const setDefaultCurrentMonth = () => {
     const now = new Date()
     const year = now.getFullYear()
@@ -139,10 +157,27 @@
   }
   setDefaultCurrentMonth()
 
+  // 🔄 Local Isolation Search Logic
   const handleLoadDashboardData = async () => {
     if (!detectedType.value) return
+    console.log("⚙ Running private query check...")
     await handleExecuteFiltered()
     await handleExecuteBlocks()
+    console.log(`📊 Analysis updated. ${matchedRecords.value?.length || 0} items structured inside sandbox UI.`)
+  }
+
+  // ☁ Explicit Cloud Deployment Triggers
+  const handlePublishToCloud = async () => {
+    const areaName = locations.value?.join(', ') || 'Unknown Branch'
+    const recordsToUpload = matchedRecords.value || []
+
+    if (recordsToUpload.length === 0) {
+      alert("Cannot publish an empty dataset. Please load data first.")
+      return
+    }
+
+    // 📝 Added detectedType.value to the parameters list here
+    await uploadHistoricalData(areaName, recordsToUpload, dateRange, detectedType.value)
   }
 
   watch(isMigrating, (newIsMigrating, oldIsMigrating) => {
@@ -247,6 +282,12 @@
 .input-field input { border: 1px solid #d1d5db; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; color: #374151; height: 32px; box-sizing: border-box; }
 .btn-green { background: #064e3b; color: #fff; border: none; padding: 0 30px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; height: 32px; display: inline-flex; align-items: center; }
 .btn-green:hover { opacity: 0.9; }
+
+/* --- BRAND NEW CLOUD PUBLISH BUTTON COMPONENT STYLING --- */
+.btn-cloud-publish { background: #2563eb; color: #fff; border: 1px solid #1d4ed8; padding: 0 20px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.8rem; height: 32px; display: inline-flex; align-items: center; box-shadow: 0 2px 4px rgba(37,99,235,0.2); transition: 0.2s; }
+.btn-cloud-publish:hover { background: #1d4ed8; }
+.btn-cloud-publish:disabled { background-color: #94a3b8; border-color: #cbd5e1; cursor: not-allowed; box-shadow: none; }
+
 .right-aligned-metrics { margin-left: auto; display: flex; align-items: center; }
 
 /* --- WORKSPACE GRID MATRIX --- */
