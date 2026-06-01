@@ -12,6 +12,7 @@ export function setupIpcHandlers(ipcMain, dialog) {
     });
     return canceled ? null : filePaths[0];
   });
+
   // --- MIGRATION TRIGGER ---
   ipcMain.on('save-mdb-path', async (event, mdbPath) => {
     try {
@@ -21,7 +22,6 @@ export function setupIpcHandlers(ipcMain, dialog) {
       event.reply('migration-finished', { success: false, error: err.message });
     }
   });
-
 
   // --- LOCATION FILTER LOOKUP ---
   ipcMain.handle('get-locations', () => queryDb(
@@ -35,6 +35,7 @@ export function setupIpcHandlers(ipcMain, dialog) {
     (rows) => rows
   ));
 
+  // --- LINE GRAPH TRANSITIONS CHANNEL ---
   ipcMain.handle('check-data-by-date', (event, { table, startDate, endDate }) => {
     const isProduction = table === "DRDetails";
     
@@ -42,8 +43,6 @@ export function setupIpcHandlers(ipcMain, dialog) {
     const numCol = isProduction ? "DRNum" : "MISNum";
     const totalCol = isProduction ? "DRTotalAmount" : "MISTotal";
 
-    // 🚀 FIXED: Removed the native date() function wrappers that were choking on "16-May-26".
-    // We now query the columns directly as valid verified text strings from your legacy system.
     const sql = `SELECT 
                   ${dateCol} as TransactionDate,
                   TRIM(${numCol}) as CleanNum, 
@@ -55,38 +54,50 @@ export function setupIpcHandlers(ipcMain, dialog) {
     return queryDb(sql, (rows) => rows);
   });
 
-    ipcMain.handle('check-block-data', (event, { table, startDate, endDate }) => {
-      const isProduction = table === "DRDetails";
-      
-      const dateCol = isProduction ? "DRDate" : "MISDate";
-      const blockCol = isProduction ? "DRBlock" : "MISBlock";
-      
-      // 🚀 FIXED BASED ON YOUR DETAIL: Use the raw row item amounts instead of the pre-calculated totals!
-      const amountCol = isProduction ? "DRAmount" : "MISAmount";
+  // --- BAR GRAPH VOLUMES CHANNEL ---
+  ipcMain.handle('check-block-data', (event, { table, startDate, endDate }) => {
+    const isProduction = table === "DRDetails";
+    
+    const dateCol = isProduction ? "DRDate" : "MISDate";
+    const blockCol = isProduction ? "DRBlock" : "MISBlock";
+    const amountCol = isProduction ? "DRAmount" : "MISAmount";
 
-      // SQL Logic: Pure, direct mathematical sum of individual line item amounts inside the block frame
-      const sql = `SELECT 
-                    ${dateCol} as TransactionDate,
-                    TRIM(${blockCol}) as CleanBlock,
-                    COUNT(*) as RowCount,
-                    SUM(CAST(REPLACE(${amountCol}, ',', '') AS DECIMAL)) as BlockSumTotal
-                  FROM "${table}" 
-                  WHERE ${dateCol} BETWEEN '${startDate}' AND '${endDate}'
-                    AND ${blockCol} > ''
-                  GROUP BY TRIM(${blockCol})`;
+    const sql = `SELECT 
+                  ${dateCol} as TransactionDate,
+                  TRIM(${blockCol}) as CleanBlock,
+                  COUNT(*) as RowCount,
+                  SUM(CAST(REPLACE(${amountCol}, ',', '') AS DECIMAL)) as BlockSumTotal
+                FROM "${table}" 
+                WHERE ${dateCol} BETWEEN '${startDate}' AND '${endDate}'
+                  AND ${blockCol} > ''
+                GROUP BY TRIM(${blockCol})`;
 
-      return queryDb(sql, (rows) => rows);
-    });
+    return queryDb(sql, (rows) => rows);
+  });
 
-    const queryDb = (sql, cb) => new Promise((res) => {
-      const db = new sqlite3.Database('./migrated_data.sqlite');
-      db.all(sql, [], (err, rows) => {
-        res({
-          data: err ? null : cb(rows),
-          executedSql: sql,
-          error: err ? err.message : null
-        });
-        db.close();
+  // --- ☁️ FIXED CLOUD SNAPSHOT DATAPACK CHANNEL ---
+  ipcMain.handle('check-raw-cloud-data', (event, { table, startDate, endDate }) => {
+    const dateColumn = table === 'DRDetails' ? 'DRDate' : 'MISDate';
+    
+    // Formatted query matching SQLite quotes syntax and date string boundaries
+    const sql = `SELECT * FROM "${table}" 
+                 WHERE ${dateColumn} BETWEEN '${startDate}' AND '${endDate}'
+                 ORDER BY ${dateColumn} ASC`;
+
+    // 🛠️ FIX: Routes directly through your working connection wrapper utility
+    return queryDb(sql, (rows) => rows);
+  });
+
+  // --- CENTRALIZED DATABASE ENGINE WRAPPER ---
+  const queryDb = (sql, cb) => new Promise((res) => {
+    const db = new sqlite3.Database('./migrated_data.sqlite');
+    db.all(sql, [], (err, rows) => {
+      res({
+        data: err ? null : cb(rows),
+        executedSql: sql,
+        error: err ? err.message : null
       });
+      db.close();
     });
+  });
 }

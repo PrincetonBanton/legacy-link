@@ -2,13 +2,12 @@ import { ref } from 'vue'
 import { useDebugLogger } from './useDebugLogger'
 
 export function useAnalysis(detectedType) {
-  // 🎯 THE MASTER ALERTS SWITCH
-  // Change to true to enable all debug popups; change to false to mute everything instantly!
-  const ENABLE_DEBUG_ALERTS = false 
+  // 🎯 THE MASTER ALERTS SWITCH - Set to true to enable your snapshot alerts!
+  const ENABLE_DEBUG_ALERTS = true
 
   // --- STATE FOR FILTERING & SUMMARY ---
   const totalAmount = ref(0)
-  const matchedRecords = ref([])
+  const invoiceRecords = ref([])
   const blockRecords = ref([])
   const activeViewType = ref('')
 
@@ -27,12 +26,12 @@ export function useAnalysis(detectedType) {
   const getTableName = () => detectedType.value === "Production System" ? "DRDetails" : "MISDetails"
   const getIpc = () => window.require ? window.require('electron').ipcRenderer : null
 
-  // Initialize the external logger alerts
+  // Initialize the local log utility
   const { logFilteredInvoices, logBlockSummary } = useDebugLogger()
 
   // --- 1. FILTER BY DATE WORKER (LINE GRAPH - INVOICES) ---
-  const handleExecuteFiltered = async () => {
-    if (!detectedType.value) return alert("Please sync a database first.")
+  const handleExecuteInvoices = async () => {
+    if (!detectedType.value) return
     const table = getTableName()
 
     const res = await getIpc()?.invoke('check-data-by-date', {
@@ -41,27 +40,27 @@ export function useAnalysis(detectedType) {
       endDate: dateRange.value.end
     })
     
-    if (!res) return
-    if (res.error) return alert(`❌ Database Error: ${res.error}`)
+    if (!res || res.error) return
 
     if (!res.data || res.data.length === 0) {
       totalAmount.value = 0
-      matchedRecords.value = []
-      return alert(`⚠️ No records found between ${dateRange.value.start} and ${dateRange.value.end} for table "${table}".`)
+      invoiceRecords.value = []
+      // 📝 Alert if no data found during the main dashboard query execution
+      alert(`ℹ️ Notice: No invoice records found between ${dateRange.value.start} and ${dateRange.value.end} for table "${table}".`)
+      return
     }
 
     const totalSum = res.data.reduce((accumulator, row) => accumulator + (row.UniqueTotal || 0), 0)
     totalAmount.value = totalSum
 
     activeViewType.value = 'dates'
-    matchedRecords.value = res.data.map(row => ({
+    invoiceRecords.value = res.data.map(row => ({
       date: row.TransactionDate ? row.TransactionDate.trim() : 'N/A',
       identifier: row.CleanNum,
       value: row.UniqueTotal,
       extraInfo: 'Invoice'
     }))
 
-    // Handled automatically via the top flag variable
     if (ENABLE_DEBUG_ALERTS) {
       logFilteredInvoices(res, detectedType.value, table, dateRange.value, totalSum)
     }
@@ -69,7 +68,7 @@ export function useAnalysis(detectedType) {
 
   // --- 2. CHECK BLOCK DATA WORKER (BAR GRAPH - BLOCKS) ---
   const handleExecuteBlocks = async () => {
-    if (!detectedType.value) return alert("Please sync a database first.")
+    if (!detectedType.value) return
     const table = getTableName()
     const isProduction = detectedType.value === "Production System"
     const blockCol = isProduction ? "DRBlock" : "MISBlock"
@@ -81,13 +80,11 @@ export function useAnalysis(detectedType) {
       endDate: dateRange.value.end
     })
     
-    if (!res) return
-    if (res.error) return alert(`❌ Database Error: ${res.error}`)
+    if (!res || res.error) return
 
     if (!res.data || res.data.length === 0) {
       blockRecords.value = []
-      matchedRecords.value = []
-      return alert(`⚠️ No blocks found between ${dateRange.value.start} and ${dateRange.value.end} for table "${table}".`)
+      return
     }
 
     const grandBlockSum = res.data.reduce((accumulator, row) => accumulator + (row.BlockSumTotal || 0), 0)
@@ -102,7 +99,6 @@ export function useAnalysis(detectedType) {
       extraInfo: `${row.RowCount} items`
     }))
 
-    // Handled automatically via the top flag variable
     if (ENABLE_DEBUG_ALERTS) {
       logBlockSummary(res, detectedType.value, table, dateRange.value, grandBlockSum, blockCol, amountCol)
     }
@@ -110,13 +106,13 @@ export function useAnalysis(detectedType) {
 
   const clearAnalysisData = () => {
     totalAmount.value = 0
-    matchedRecords.value = []
+    invoiceRecords.value = []
     blockRecords.value = []
     activeViewType.value = ''
   }
 
   return {
-    dateRange, totalAmount, matchedRecords, blockRecords, activeViewType,
-    handleExecuteFiltered, handleExecuteBlocks, clearAnalysisData
+    dateRange, totalAmount, invoiceRecords, blockRecords, activeViewType,
+    getTableName, getIpc, handleExecuteInvoices, handleExecuteBlocks, clearAnalysisData
   }
 }

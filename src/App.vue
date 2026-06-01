@@ -68,9 +68,9 @@
               </button>
 
               <button 
-                v-if="matchedRecords && matchedRecords.length > 0"
+                v-if="invoiceRecords && invoiceRecords.length > 0"
                 class="btn-cloud-publish" 
-                @click="handlePublishToCloud"
+                @click="handlePublishToCloudPortal(locations)"
                 :disabled="isSyncing"
               >
                 {{ isSyncing ? '☁ Publishing...' : '☁ PUBLISH TO PORTAL' }}
@@ -81,7 +81,7 @@
                   :date-range="dateRange"
                   :total-amount="totalAmount"
                   :main-table-info="mainTableInfo"
-                  :matched-records-length="matchedRecords?.length || 0"
+                  :matched-records-length="invoiceRecords?.length || 0"
                 />
               </div>
             </div>
@@ -120,10 +120,11 @@
 </template>
 
 <script setup>
-  import { computed, watch } from 'vue'
+  import { watch } from 'vue'
   import { useMigration } from './composables/useMigration'
   import { useAnalysis } from './composables/useAnalysis'
-  import { useCloudSync } from './composables/useCloudSync'
+  import { useCharts } from './composables/useCharts' // 🔗 New Composable Link
+  import { useCloudOperations } from './composables/useCloudOperations'
   import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js'
   
   import DashboardLineGraph from './components/DashboardLineGraph.vue'
@@ -135,18 +136,27 @@
   
   ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement)
 
+  // 1. Database Migration Engine (Provides detectedType & locations)
   const { 
     selectedPath, isMigrating, fileInfo, detectedType, mainTableInfo, 
     locations, handleMdbBrowse, handleMdbSync, resetSelection 
   } = useMigration()
 
+  // 2. Local Operational Data Processing Hook (ONLY local data properties remain here)
   const {
-    dateRange, totalAmount, matchedRecords, blockRecords, activeViewType,
-    handleExecuteFiltered, handleExecuteBlocks, clearAnalysisData
+    dateRange, totalAmount, invoiceRecords, blockRecords, activeViewType,
+    getTableName, getIpc, handleExecuteInvoices, handleExecuteBlocks, clearAnalysisData
   } = useAnalysis(detectedType)
 
-  const { uploadHistoricalData, isSyncing } = useCloudSync()
+  // 3. Decoupled Cloud Management Hook (We import and extract the cloud items here!)
+  const {
+    isSyncing, handlePublishToCloud, handlePublishToCloudPortal, clearCloudRecords
+  } = useCloudOperations(detectedType, dateRange, getTableName, getIpc)
 
+// 4. Graph Visual Composable Mapping Engine
+const { lineChartData, barChartData, chartOptions } = useCharts(invoiceRecords, blockRecords)
+
+  // Sets the default date input values to cover the entire current month
   const setDefaultCurrentMonth = () => {
     const now = new Date()
     const year = now.getFullYear()
@@ -157,85 +167,29 @@
   }
   setDefaultCurrentMonth()
 
-  // 🔄 Local Isolation Search Logic
+  // Core visual data fetch routine
   const handleLoadDashboardData = async () => {
     if (!detectedType.value) return
-    console.log("⚙ Running private query check...")
-    await handleExecuteFiltered()
-    await handleExecuteBlocks()
-    console.log(`📊 Analysis updated. ${matchedRecords.value?.length || 0} items structured inside sandbox UI.`)
+    try { await handleExecuteInvoices() } catch (e) { console.error(e) }
+    try { await handleExecuteBlocks() } catch (e) { console.error(e) }
+    try { await handlePublishToCloud() } catch (e) { console.error(e) }
   }
 
-  // ☁ Explicit Cloud Deployment Triggers
-  const handlePublishToCloud = async () => {
-    const areaName = locations.value?.join(', ') || 'Unknown Branch'
-    const recordsToUpload = matchedRecords.value || []
-
-    if (recordsToUpload.length === 0) {
-      alert("Cannot publish an empty dataset. Please load data first.")
-      return
-    }
-
-    // 📝 Added detectedType.value to the parameters list here
-    await uploadHistoricalData(areaName, recordsToUpload, dateRange, detectedType.value)
-  }
-
-  watch(isMigrating, (newIsMigrating, oldIsMigrating) => {
+  // Auto-fetch dashboard data instantly following a sync sequence
+  watch(isMigrating, async (newIsMigrating, oldIsMigrating) => {
     if (oldIsMigrating && !newIsMigrating && selectedPath.value) {
-      handleLoadDashboardData()
+      await handleLoadDashboardData()
     }
   })
 
-  watch(detectedType, (newProfile) => {
+  // Watch profile switches to prevent data crosstalk
+  watch(detectedType, async (newProfile) => {
     if (!newProfile) {
       clearAnalysisData()
     } else {
-      handleLoadDashboardData()
+      await handleLoadDashboardData()
     }
   })
-
-  const lineChartData = computed(() => {
-    const rawList = matchedRecords.value || []
-    const sortedList = [...rawList].sort((a, b) => new Date(a.date) - new Date(b.date))
-    return {
-      labels: sortedList.map(item => {
-        if (!item.date || item.date === 'N/A') return 'N/A'
-        return new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: '2-digit' })
-      }),
-      datasets: [{
-        label: 'Invoices Released (Trend)',
-        backgroundColor: 'rgba(16, 185, 129, 0.04)',
-        borderColor: '#10b981',
-        pointBackgroundColor: '#064e3b',
-        borderWidth: 2,
-        tension: 0.2, 
-        data: sortedList.map(item => item.value)
-      }]
-    }
-  })
-
-  const barChartData = computed(() => {
-    const dataSource = blockRecords?.value || []
-    return {
-      labels: dataSource.map(item => item.identifier),
-      datasets: [{
-        label: 'Volume per Block',
-        backgroundColor: '#3b82f6',
-        borderRadius: 4,
-        data: dataSource.map(item => item.value)
-      }]
-    }
-  })
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      y: { grid: { color: '#f3f4f6' }, ticks: { color: '#9ca3af', font: { size: 10, weight: '500' } } },
-      x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10, weight: '500' } } }
-    }
-  }
 </script>
 
 <style scoped>
@@ -249,7 +203,6 @@
 .nav-item:hover { background: #f3f4f6; color: #1f2937; }
 .nav-item.active { background: #f3f4f6; color: #111827; font-weight: 700; }
 
-/* --- COMPACT MAP FOOTER WITH BOUNDARY ESCAPE SAFEGUARDS --- */
 .sidebar-map-footer { position: absolute; bottom: 2rem; left: 1rem; right: 1rem; height: auto; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: #fafafa; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 
 /* --- HEADER BANNER & SYSTEM STATS --- */
@@ -272,7 +225,7 @@
 .btn-header-disconnect { background: #ef4444; }
 .btn-header-disconnect:hover { background: #dc2626; }
 
-/* --- WORKSPACE CORE CONTROLS --- */
+/* --- WORKSPACE CONTROLS --- */
 .workspace { padding: 1rem 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; }
 .workspace-empty-state { background-color: #f4f6f9; justify-content: center; }
 .toolbar { background: #fff; padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; display: flex; align-items: center; box-sizing: border-box; width: 100%; }
@@ -283,20 +236,18 @@
 .btn-green { background: #064e3b; color: #fff; border: none; padding: 0 30px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; height: 32px; display: inline-flex; align-items: center; }
 .btn-green:hover { opacity: 0.9; }
 
-/* --- BRAND NEW CLOUD PUBLISH BUTTON COMPONENT STYLING --- */
 .btn-cloud-publish { background: #2563eb; color: #fff; border: 1px solid #1d4ed8; padding: 0 20px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.8rem; height: 32px; display: inline-flex; align-items: center; box-shadow: 0 2px 4px rgba(37,99,235,0.2); transition: 0.2s; }
 .btn-cloud-publish:hover { background: #1d4ed8; }
 .btn-cloud-publish:disabled { background-color: #94a3b8; border-color: #cbd5e1; cursor: not-allowed; box-shadow: none; }
 
 .right-aligned-metrics { margin-left: auto; display: flex; align-items: center; }
 
-/* --- WORKSPACE GRID MATRIX --- */
+/* --- WORKSPACE LAYOUT --- */
 .workspace-body-layout { display: flex; flex-direction: column; gap: 20px; width: 100%; }
 .dashboard-columns-container { display: flex; gap: 20px; width: 100%; align-items: stretch; }
 .left-charts-column { flex: 0 0 70%; display: flex; flex-direction: column; gap: 20px; min-width: 0; height: 660px; }
 .right-metrics-column { flex: 0 0 30%; min-width: 0; display: flex; flex-direction: column; max-height: 660px; overflow: hidden; }
 
-/* --- SPLASH SCREEN & LOADING OVERLAYS --- */
 .spinner-overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 350px; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; gap: 1rem; }
 .sync-spinner { width: 45px; height: 45px; border: 4px solid #f3f4f6; border-top-color: #059669; border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
