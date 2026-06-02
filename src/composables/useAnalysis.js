@@ -2,7 +2,6 @@ import { ref } from 'vue'
 import { useDebugLogger } from './useDebugLogger'
 
 export function useAnalysis(detectedType) {
-  // 🎯 THE MASTER ALERTS SWITCH - Set to true to enable your snapshot alerts!
   const ENABLE_DEBUG_ALERTS = true
 
   // --- STATE FOR FILTERING & SUMMARY ---
@@ -45,7 +44,6 @@ export function useAnalysis(detectedType) {
     if (!res.data || res.data.length === 0) {
       totalAmount.value = 0
       invoiceRecords.value = []
-      // 📝 Alert if no data found during the main dashboard query execution
       alert(`ℹ️ Notice: No invoice records found between ${dateRange.value.start} and ${dateRange.value.end} for table "${table}".`)
       return
     }

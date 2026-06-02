@@ -2,7 +2,6 @@ import { computed } from 'vue'
 
 export function useCharts(invoiceRecords, blockRecords) {
   
-  // 📈 Computed Property: Formats data array structure for the Line Graph
   const lineChartData = computed(() => {
     const rawList = invoiceRecords.value || []
     const sortedList = [...rawList].sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -24,7 +23,6 @@ export function useCharts(invoiceRecords, blockRecords) {
     }
   })
 
-  // 📊 Computed Property: Formats data array structure for the Bar Graph
   const barChartData = computed(() => {
     const dataSource = blockRecords?.value || []
     
@@ -39,7 +37,7 @@ export function useCharts(invoiceRecords, blockRecords) {
     }
   })
 
-  // 🛠️ Global canvas configurations for ChartJS instances
+  //Global canvas configurations for ChartJS instances
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,

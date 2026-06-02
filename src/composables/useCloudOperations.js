@@ -3,12 +3,12 @@ import { useDebugLogger } from './useDebugLogger'
 import { useCloudSync } from './useCloudSync'
 
 export function useCloudOperations(detectedType, dateRange, getTableName, getIpc) {
-  // 🎯 THE MASTER ALERTS SWITCH - Set to true to enable your snapshot alerts!
   const ENABLE_DEBUG_ALERTS = true
 
   const cloudRecords = ref([])
   const { logRawPreview } = useDebugLogger()
   const { uploadHistoricalData, isSyncing, syncError } = useCloudSync()
+
 
   // --- PRODUCTION CLOUD PUBLISHING DATA EXTRACTION ---
   const handlePublishToCloud = async () => {
@@ -30,7 +30,7 @@ export function useCloudOperations(detectedType, dateRange, getTableName, getIpc
 
       if (!res || res.error) return []
 
-      // 📝 Empty state fallback prompt inside the extraction data engine
+      // Empty state fallback prompt inside the extraction data engine
       if (!res.data || res.data.length === 0) {
         cloudRecords.value = []
         return []
@@ -38,11 +38,9 @@ export function useCloudOperations(detectedType, dateRange, getTableName, getIpc
 
       cloudRecords.value = res.data
 
-      // ⚡ TRIGGER THE PREVIEW ALERT
       if (ENABLE_DEBUG_ALERTS) {
         logRawPreview(res, detectedType.value, table, targetCol, dateRange.value)
       }
-
       return cloudRecords.value
 
     } catch (err) {

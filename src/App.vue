@@ -45,9 +45,7 @@
       </header>
 
       <section :class="['workspace', { 'workspace-empty-state': !detectedType }]">
-        
         <template v-if="detectedType">
-
           <div class="toolbar">
             <div class="date-picker-group">
               <div class="input-field">
@@ -58,21 +56,9 @@
                 <label>End Date</label>
                 <input type="date" v-model="dateRange.end" />
               </div>
-              
-              <button 
-                class="btn-green" 
-                style="background-color: #145214; border-color: #0e3a0e;" 
-                @click="handleLoadDashboardData"
-              >
-                GO
-              </button>
-
-              <button 
-                v-if="invoiceRecords && invoiceRecords.length > 0"
-                class="btn-cloud-publish" 
-                @click="handlePublishToCloudPortal(locations)"
-                :disabled="isSyncing"
-              >
+              <button class="btn-green" @click="handleLoadDashboardData">GO </button>
+              <button v-if="invoiceRecords && invoiceRecords.length > 0" 
+                class="btn-cloud-publish" @click="handlePublishToCloudPortal(locations)" :disabled="isSyncing">
                 {{ isSyncing ? '☁ Publishing...' : '☁ PUBLISH TO PORTAL' }}
               </button>
               
@@ -153,20 +139,10 @@
     isSyncing, handlePublishToCloud, handlePublishToCloudPortal, clearCloudRecords
   } = useCloudOperations(detectedType, dateRange, getTableName, getIpc)
 
-// 4. Graph Visual Composable Mapping Engine
-const { lineChartData, barChartData, chartOptions } = useCharts(invoiceRecords, blockRecords)
+  // 4. Graph Visual Composable Mapping Engine
+  const { lineChartData, barChartData, chartOptions } = useCharts(invoiceRecords, blockRecords)
 
-  // Sets the default date input values to cover the entire current month
-  const setDefaultCurrentMonth = () => {
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    dateRange.start = `${year}-${month}-01`
-    const lastDay = new Date(year, now.getMonth() + 1, 0).getDate()
-    dateRange.end = `${year}-${month}-${lastDay}`
-  }
-  setDefaultCurrentMonth()
-
+  
   // Core visual data fetch routine
   const handleLoadDashboardData = async () => {
     if (!detectedType.value) return

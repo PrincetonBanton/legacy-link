@@ -1,5 +1,5 @@
 export function useDebugLogger() {
-  // Invoice Filter Alert
+
   const logFilteredInvoices = (res, detectedType, table, dateRange, totalSum) => {
     alert(`📜 FILTERED TEXT-COMPATIBLE SQL EXECUTED:\n\n"${res.executedSql}"`)
     
@@ -9,7 +9,6 @@ export function useDebugLogger() {
       const formattedAmount = row.UniqueTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       return `${row.TransactionDate.trim()} - ${row.CleanNum} - ${formattedAmount}`
     }).join("\n")
-
     alert(
       `📊 DISTINCT TRANSACTION SUMMARY\n` +
       `----------------------------------------\n` +
@@ -22,7 +21,7 @@ export function useDebugLogger() {
     )
   }
 
-  // Block Distribution Alert
+
   const logBlockSummary = (res, detectedType, table, dateRange, grandBlockSum, blockCol, amountCol) => {
     alert(`📜 FILTERED BLOCK LINE-ITEM SQL EXECUTED:\n\n"${res.executedSql}"`)
     
@@ -32,7 +31,6 @@ export function useDebugLogger() {
       const formattedAmount = row.BlockSumTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       return `${row.TransactionDate.trim()} - ${row.CleanBlock} - Php ${formattedAmount} (${row.RowCount} items)`
     }).join("\n")
-
     alert(
       `📊 DISTINCT BLOCK STRUCTURAL SUMMARY\n` +
       `----------------------------------------\n` +
@@ -45,13 +43,10 @@ export function useDebugLogger() {
     )
   }
 
-  // Raw Cloud Data Verification Alert
+
   const logRawPreview = (res, detectedType, table, targetCol, dateRange) => {
     if (!res.data || res.data.length === 0) return
-
     const firstRow = res.data[0]
-    
-    // 📋 Exact Requested Formatting Layout Implementation
     alert(
       `🖥️ System Profile: ${detectedType}\n` +
       `📂 Query Target Table: ${table}\n` +
