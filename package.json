@@ -3,7 +3,7 @@
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "dev": "concurrently \"vite --no-open\" \"wait-on http://localhost:5173 && electron .\""
+    "dev": "concurrently \"vite --no-open\" \"wait-on http://localhost:5174 && electron .\"" 
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",

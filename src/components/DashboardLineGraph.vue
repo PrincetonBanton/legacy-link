@@ -20,9 +20,9 @@ defineProps({
 </script>
 
 <style scoped>
-.card { background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 1.5rem; box-sizing: border-box; }
+.card { background: #1e293b; border-radius: 12px; padding: 1.5rem; box-sizing: border-box; }
 .graph-card { display: flex; flex-direction: column; gap: 1rem; height: 350px; }
-.card-header h3 { font-size: 1.05rem; font-weight: 700; color: #111827; margin: 0; }
+.card-header h3 { margin: 0; font-size: 1rem; font-weight: 600; color: #fff; }
 .chart-container-frame { flex: 1; position: relative; height: 100%; min-width: 0; }
 .chart-wrapper { height: 100%; width: 100%; position: relative; }
 .empty-state-card-message { display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; color: #9ca3af; font-size: 0.8rem; font-weight: 500; border: 1px dashed #e5e7eb; border-radius: 8px; padding: 1rem; box-sizing: border-box; }

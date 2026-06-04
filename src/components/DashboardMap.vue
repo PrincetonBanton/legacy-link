@@ -34,7 +34,7 @@ const mapDetails = computed(() => {
 </script>
 
 <style scoped>
-.map-panel-card { display: flex; flex-direction: column; height: 100%; padding: 0 !important; overflow: hidden; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; }
+.map-panel-card { display: flex; flex-direction: column; height: 100%; padding: 0 !important; overflow: hidden; background: #1e293b; border-radius: 12px; border: 1px solid #e5e7eb; }
 .google-header-logo { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #fafafa; border-bottom: 1px solid #e5e7eb; text-decoration: none; color: #4b5563; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; transition: background 0.2s; }
 .google-header-logo:hover { background: #f3f4f6; color: #111827; }
 .logo-icon { width: 30px; height: 30px; object-fit: contain; }

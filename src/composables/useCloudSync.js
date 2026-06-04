@@ -23,48 +23,95 @@ export function useCloudSync() {
     syncError.value = null
 
     const isProd = detectedType === "Production System"
+    const areaClean = areaName.trim().toUpperCase()
+    const invoicePattern = isProd ? 'DR' : 'MIS'
 
     try {
-      //1. Map raw local SQLite/Access entries to match your precise PostgreSQL DDL columns
-        // Inside your uploadHistoricalData method in useCloudSync.js:
-        const payload = rawRecords.map((row, i) => {
-          const cleanAmount = parseFloat(String(isProd ? row.DRAmount : row.MISAmount).replace(/,/g, '')) || 0
-          const cleanQty = parseFloat(String(isProd ? row.DRQty : row.MISQty).replace(/,/g, '')) || 0
-          const cleanWeight = parseFloat(String(isProd ? (row.DRWeight || row.DRTotalWeight) : (row.MISWeight || 0)).replace(/,/g, '')) || 0
+      // === PHASE 1: SCAN THE SUPABASE TABLE FOR CONFLICTS ===
+      console.log(`Scanning cloud table for pre-existing ${detectedType} logs in ${areaClean}...`)
+      
+      const { data: cloudScan, error: scanError } = await supabase
+        .from('delivery_details')
+        .select('transaction_date')
+        .eq('area_name', areaClean)
+        .ilike('invoice_num', `%${invoicePattern}%`)
 
-          // Grab the legacy document item line number if it exists, otherwise fallback to the map index
-          const lineItemModifier = row.DRItemNo || row.MISItemNo || `L${i}`;
+      if (scanError) throw scanError
 
-          return {
-            // COMBINING ID WITH LINE MODIFIER GUARANTEES POSTGRES NEVER SEES DUPLICATE KEYS IN A BATCH
-            legacy_id: `${isProd ? row.DRRef : row.MISId}-${lineItemModifier}`,
-            area_name: areaName,
-            transaction_date: isProd ? row.DRDate : row.MISDate,
-            invoice_num: isProd ? row.DRNum?.trim() : row.MISNum?.trim(),
-            customer_name: isProd ? row.DRCustomer.trim() : row.MISGroup?.trim(),
-            destination: isProd ? row.DRDestination?.trim() : row.MISGroup?.trim(),
-            block_name: isProd ? row.DRBlock?.trim() : row.MISBlock?.trim(),
-            product_name: isProd ? row.DRProduct?.trim() : row.MISItem?.trim(),
-            quantity: cleanQty,
-            weight: cleanWeight,
-            amount: cleanAmount
-          }
-        })
+      // === PHASE 2: EVALUATE TIMELINES & PROMPT THE USER ===
+      if (cloudScan && cloudScan.length > 0) {
+        // Extract and sort unique dates to find the absolute timeline boundaries
+        const dates = cloudScan
+          .map(row => row.transaction_date ? row.transaction_date.split('T')[0] : null)
+          .filter(Boolean)
+          .sort()
 
-      console.log(`Initializing cloud upsert engine for ${payload.length} items...`)
+        const totalRows = cloudScan.length
+        const minDate = dates[0] || 'N/A'
+        const maxDate = dates[dates.length - 1] || 'N/A'
 
-      // 2. Safe, Idempotent Bulk Upsert Operation
-      // If a row with the same (legacy_id + area_name) exists, it overrides it. Otherwise, it appends.
-      // Exact matching blueprint for your Supabase execution block
-    const { data, error: upsertError } = await supabase
-      .from('delivery_details')
-      .upsert(payload, { onConflict: 'legacy_id,area_name' }) // 👈 Must match database columns perfectly
-      .select('legacy_id')
+        // Display browser-native warning dialog tracking the exact balance scope
+        const confirmOverwrite = window.confirm(
+          `Conflict Detected on Cloud Portal!\n\n` +
+          `Existing "${detectedType}" data already exists for area "${areaClean}".\n` +
+          `• Total Entries: ${totalRows} rows\n` +
+          `• Date Range: ${minDate} to ${maxDate}\n\n` +
+          `Do you want to DELETE this existing cloud dataset and replace it with your fresh local files?`
+        )
 
-      if (upsertError) throw upsertError
+        // Exit cleanly if the user presses cancel
+        if (!confirmOverwrite) {
+          console.log('Publish workflow aborted by user choice.')
+          isSyncing.value = false
+          return
+        }
+
+        // === PHASE 3: PURGE PRE-EXISTING CLOUD SEGMENT ===
+        console.log(`Purging old data bracket from cloud table...`)
+        const { error: deleteError } = await supabase
+          .from('delivery_details')
+          .delete()
+          .eq('area_name', areaClean)
+          .ilike('invoice_num', `%${invoicePattern}%`)
+
+        if (deleteError) throw deleteError
+      }
+
+      // === PHASE 4: PREPARE FRESH INJECTION PAYLOAD ===
+      const payload = rawRecords.map((row, i) => {
+        const cleanAmount = parseFloat(String(isProd ? row.DRAmount : row.MISAmount).replace(/,/g, '')) || 0
+        const cleanQty = parseFloat(String(isProd ? row.DRQty : row.MISQty).replace(/,/g, '')) || 0
+        const cleanWeight = parseFloat(String(isProd ? (row.DRWeight || row.DRTotalWeight) : (row.MISWeight || 0)).replace(/,/g, '')) || 0
+        const lineItemModifier = row.DRItemNo || row.MISItemNo || `L${i}`
+
+        return {
+          legacy_id: `${isProd ? row.DRRef : row.MISId}-${lineItemModifier}`,
+          area_name: areaClean,
+          system_type: isProd ? "Production System" : "Material Management",
+          transaction_date: isProd ? row.DRDate : row.MISDate,
+          invoice_num: isProd ? row.DRNum?.trim() : row.MISNum?.trim(),
+          customer_name: isProd ? row.DRCustomer?.trim() : row.MISGroup?.trim(),
+          destination: isProd ? row.DRDestination?.trim() : row.MISGroup?.trim(),
+          block_name: isProd ? row.DRBlock?.trim() : row.MISBlock?.trim(),
+          product_name: isProd ? row.DRProduct?.trim() : row.MISItem?.trim(),
+          quantity: cleanQty,
+          weight: cleanWeight,
+          amount: cleanAmount
+        }
+      })
+
+      console.log(`Initializing cloud injection engine for ${payload.length} items...`)
+
+      // === PHASE 5: FRESH BATCH INSERTION ===
+      const { data, error: insertError } = await supabase
+        .from('delivery_details')
+        .insert(payload)
+        .select('legacy_id')
+
+      if (insertError) throw insertError
       
       const syncedCount = data?.length || payload.length
-      console.log(`🌐 [${areaName}] Sync Complete: ${syncedCount} rows successfully merged into delivery_details table.`)
+      console.log(`🌐 [${areaClean}] Sync Complete: ${syncedCount} rows successfully written to portal template.`)
       alert(`🎉 Successfully published ${syncedCount} itemized records to the Executive Portal!`)
 
     } catch (err) {

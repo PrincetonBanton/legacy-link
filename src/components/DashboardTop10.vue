@@ -64,10 +64,10 @@ const sortedRecords = computed(() => {
 
 <style scoped>
 /* --- CORE CONTAINER SHORTHANDS --- */
-.card { background: #fff; border-radius: 16px; border: 1px solid #f3f4f6; padding: 1.25rem 1rem; box-sizing: border-box; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01); height: 100%; overflow: hidden; }
+.card { background: #1e293b; border-radius: 16px; padding: 1.25rem 1rem; box-sizing: border-box; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01); height: 100%; overflow: hidden; }
 .dynamic-table-card { display: flex; flex-direction: column; gap: 1rem; height: 100%; min-height: 0; min-width: 0; }
 .card-header { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
-.card-header h3 { font: 600 0.95rem/1.2 'Inter', -apple-system, sans-serif; color: #111827; margin: 0; letter-spacing: -0.2px; }
+.card-header h3 { margin: 0; font-size: 1rem; font-weight: 600; color: #fff; }
 .subtitle { font: 400 0.75rem/1.2 'Inter', -apple-system, sans-serif; color: #9ca3af; }
 .table-scroll-container { flex: 1; overflow-y: auto; width: 100%; min-width: 0; min-height: 0; }
 
