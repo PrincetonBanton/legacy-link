@@ -162,10 +162,10 @@
 
 <style scoped>
 /* 🛠️ FIXED: Standardized safety layout configuration to clear any residual outer viewport borders */
-:global(html), :global(body) { margin: 0; padding: 0; background-color: #0f172a; }
-.app-layout { display: flex; height: 100vh; width: 100vw; background: #0f172a; color: #f8fafc; font-family: -apple-system, sans-serif; overflow: hidden; }
-.main-canvas { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #0f172a; }
-.sidebar { width: 240px; background: #0f172a; display: flex; flex-direction: column; padding: 1.5rem 1rem 2.5rem 1rem; box-sizing: border-box; position: relative; margin-left: -1px; padding-left: calc(1rem + 1px); }
+:global(html), :global(body) { margin: 0; padding: 0; background-color: black; }
+.app-layout { display: flex; height: 100vh; width: 100vw; color: #f8fafc; font-family: -apple-system, sans-serif; overflow: hidden; }
+.main-canvas { flex: 1; display: flex; flex-direction: column; overflow: hidden;}
+.sidebar { width: 240px; display: flex; flex-direction: column; padding: 1.5rem 1rem 2.5rem 1rem; box-sizing: border-box; position: relative; margin-left: -1px; padding-left: calc(1rem + 1px); }
 .logo-area { display: flex; align-items: center; gap: 12px; margin-bottom: 2rem; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.5px; }
 .nav-stack { flex: 1; display: flex; flex-direction: column; gap: 4px; margin-bottom: 190px; }
 .nav-item { padding: 12px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; color: #94a3b8; font-size: 0.9rem; transition: 0.2s; }
@@ -174,16 +174,16 @@
 .sidebar-map-footer { position: absolute; bottom: 2rem; left: 1rem; right: 1rem; height: auto; border-radius: 12px; overflow: hidden; border: 1px solid #334155; background: #1e293b; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
 
 /* --- HEADER MODULES --- */
-.top-header-banner { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 12px 2.5rem; min-height: 80px; box-sizing: border-box; }
+.top-header-banner { display: flex; justify-content: space-between; align-items: center; padding: 12px 2.5rem; min-height: 80px; box-sizing: border-box; }
 .title-context .main-title { margin: 0; font-size: 1.35rem; font-weight: 900; letter-spacing: -0.02em; color: #fff; }
 .header-control-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.db-connection-manager { display: flex; align-items: center; gap: 10px; background: #0f172a; padding: 4px; border-radius: 30px; border: 1px solid #334155; }
-.db-status-pill { display: flex; align-items: center; gap: 8px; background: #1e293b; padding: 6px 14px; border-radius: 20px; border: 1px solid #334155; font-size: 0.8rem; font-weight: 700; color: #34d399; max-width: 180px; }
+.db-connection-manager { display: flex; align-items: center; gap: 10px; padding: 4px; border-radius: 30px; border: 1px solid #334155; }
+.db-status-pill { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; border: 1px solid #334155; font-size: 0.8rem; font-weight: 700; color: #34d399; max-width: 180px; }
 .status-dot { width: 7px; height: 7px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 3px rgba(16,185,129,0.3); }
 .filename-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* --- SYSTEM INTERACTIVE ACTIONS --- */
-.btn-header-browse, .btn-header-sync, .btn-header-disconnect { border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; cursor: pointer; color: #fff; transition: opacity 0.2s; }
+.btn-header-browse, .btn-header-sync, .btn-header-disconnect { border: none; padding: 8 px 14px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; cursor: pointer; color: #fff; transition: opacity 0.2s; }
 .btn-header-browse { background: #059669; padding: 8px 16px; }
 .btn-header-browse:hover { background: #10b981; }
 .btn-header-sync { background: #2563eb; }
@@ -193,8 +193,8 @@
 
 /* --- ACTION PANEL CONTROLS --- */
 .workspace { padding: 1rem 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; }
-.workspace-empty-state { background-color: #0f172a; justify-content: center; }
-.toolbar { background: #1e293b; padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid #334155; display: flex; align-items: center; box-sizing: border-box; width: 100%; }
+.workspace-empty-state { justify-content: center; }
+.toolbar { padding: 1rem 1.25rem; display: flex; align-items: center; box-sizing: border-box; width: 100%; }
 .date-picker-group { display: flex; gap: 14px; align-items: flex-end; width: 100%; }
 .input-field { display: flex; flex-direction: column; gap: 4px; }
 .input-field label { font-size: 0.65rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; }

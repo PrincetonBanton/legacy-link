@@ -1,6 +1,6 @@
 <template>
   <div class="card graph-card">
-    <div class="card-header"><h3>Structural Block Aggregations</h3></div>
+    <div class="card-header"><h3>BLOCK AGGREGATIONS</h3></div>
     <div class="chart-container-frame">
       <div v-if="chartData?.datasets?.[0]?.data?.length" class="chart-wrapper">
         <Bar :data="chartData" :options="options" />
@@ -8,7 +8,7 @@
       <div v-else class="empty-state-card-message">No block dataset active.</div>
     </div>
   </div>
-</template>
+</template> 
 
 <script setup>
 import { Bar } from 'vue-chartjs'
@@ -20,9 +20,9 @@ defineProps({
 </script>
 
 <style scoped>
-.card { background: #1e293b; border-radius: 12px; padding: 1.5rem; box-sizing: border-box; }
+.card { background: #0f151f; border-radius: 12px; padding: 1rem; box-sizing: border-box; }
 .graph-card { display: flex; flex-direction: column; gap: 1rem; height: 350px; }
-.card-header h3 { margin: 0; font-size: 1rem; font-weight: 600; color: #fff; }
+.card-header h3 { margin: 0; font-size: .75rem; font-weight: 600; color: #fff; }
 .chart-container-frame { flex: 1; position: relative; height: 100%; min-width: 0; }
 .chart-wrapper { height: 100%; width: 100%; position: relative; }
 .empty-state-card-message { display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; color: #9ca3af; font-size: 0.8rem; font-weight: 500; border: 1px dashed #e5e7eb; border-radius: 8px; padding: 1rem; box-sizing: border-box; }
