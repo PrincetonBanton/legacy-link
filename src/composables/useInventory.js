@@ -8,9 +8,10 @@ export function useInventory() {
   const isLoading = ref(false)
   const activeViewType = ref('inventory_groups')
   const totalAmount = ref(0) 
-  
-  // 🎯 NEW: Tracks the selected category filter ('all', 'materials', 'chemicals', etc.)
   const activeCategoryFilter = ref('all')
+  
+  // 🎯 NEW: Tracks sorting rules ('alphabetical' or 'highest_value')
+  const activeSortOrder = ref('alphabetical')
 
   // --- SAFE ELECTRON RUNTIME CONTEXT INTERFACE ---
   const getIpc = () => window.require ? window.require('electron').ipcRenderer : null
@@ -63,7 +64,7 @@ export function useInventory() {
 
   const overallTotalValue = computed(() => totalAmount.value)
 
-  // 🎯 NEW: Filters the inventory data stream based on selection, then sorts it
+  // --- 🎯 UPDATED: DYNAMIC SORT & FILTER MATRIX ---
   const filteredAndRankedItems = computed(() => {
     return [...rawItems.value]
       .map(item => {
@@ -74,7 +75,7 @@ export function useInventory() {
           item_code: item.ItemCode || 'UNKNOWN',
           item_name: item.ItemName || 'Unnamed Item',
           item_group: item.ItemGroup || 'Unassigned',
-          normalized_group: normalizeGroup(item.ItemGroup), // Used for fast filtering matches
+          normalized_group: normalizeGroup(item.ItemGroup), 
           available_stock: stock,
           unit_of_measure: item.Unit || 'pcs',
           unit_cost: cost,
@@ -85,7 +86,19 @@ export function useInventory() {
         if (activeCategoryFilter.value === 'all') return true
         return item.normalized_group === activeCategoryFilter.value
       })
-      .sort((a, b) => b.computed_total_value - a.computed_total_value)
+      .sort((a, b) => {
+        // 🎯 Condition 1: Sort by Total Financial Net Assets Highest to Lowest
+        if (activeSortOrder.value === 'highest_value') {
+          if (b.computed_total_value !== a.computed_total_value) {
+            return b.computed_total_value - a.computed_total_value
+          }
+          // Tie-breaker fallback to alphabetical if financial values are equal
+          return a.item_name.toLowerCase().localeCompare(b.item_name.toLowerCase())
+        }
+        
+        // 🎯 Condition 2: Default Case-Insensitive Alphabetical sorting (A to Z)
+        return a.item_name.toLowerCase().localeCompare(b.item_name.toLowerCase())
+      })
   })
 
   const chartData = computed(() => ({
@@ -106,11 +119,12 @@ export function useInventory() {
     rawItems.value = []
     totalAmount.value = 0
     activeCategoryFilter.value = 'all'
+    activeSortOrder.value = 'alphabetical'
   }
 
   return {
     rawItems, isLoading, activeViewType, totalAmount, categoryTotals,
-    overallTotalValue, filteredAndRankedItems, chartData, activeCategoryFilter,
+    overallTotalValue, filteredAndRankedItems, chartData, activeCategoryFilter, activeSortOrder,
     getIpc, loadLegacyInventory, clearInventoryData
   }
 }

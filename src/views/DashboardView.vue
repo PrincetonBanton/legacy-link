@@ -133,7 +133,7 @@
 
 <style scoped>
 .dashboard-view-wrapper { display: flex; flex-direction: column; gap: 20px; width: 100%; height: 100%; box-sizing: border-box; padding: 1rem 1.5rem; }
-.toolbar { padding: 1rem 1.25rem; display: flex; align-items: center; box-sizing: border-box; width: 100%; flex-shrink: 0; }
+.toolbar {  background: #0f151f; border-radius: 12px; padding: 1rem 1.25rem; display: flex; align-items: center; box-sizing: border-box; width: 100%; flex-shrink: 0; }
 .date-picker-group { display: flex; gap: 14px; align-items: flex-end; width: 100%; }
 .input-field { display: flex; flex-direction: column; gap: 4px; }
 .input-field label { font-size: 0.65rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; }

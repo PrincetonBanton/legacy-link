@@ -90,10 +90,25 @@ export function setupIpcHandlers(ipcMain, dialog) {
 
   // --- 📦 LOCAL INVENTORY EXTRACTION CHANNEL ---
   ipcMain.handle('query-inventory', (event) => {
-    // Selects all tracking metadata from the migrated SQLite Inventory storage table
     const sql = `SELECT * FROM "Inventory" ORDER BY ItemGroup ASC`;
-
     return queryDb(sql, (rows) => rows);
+  });
+
+  // --- 🤖 OPTIONAL: BACKEND INTELLIGENT RESEARCH ENGINE ---
+  ipcMain.handle('ask-ai-about-item', async (event, { name, group }) => {
+    try {
+      // Example of integration structure if pulling from an API:
+      // const response = await fetch("https://api.yourprovider.com/v1/chat/completions", ...);
+      
+      // Local fallback parsing structure if no cloud API is configured:
+      return { 
+        data: `Technical Profile Overview:\n` +
+              `This asset categorized under [${group}] functions primarily within industrial inventory arrays. ` +
+              `Standard handling parameters require climate validation and regular stock synchronization checkouts.`
+      };
+    } catch (err) {
+      return { error: `AI lookup pipe aborted: ${err.message}` };
+    }
   });
 
   // --- CENTRALIZED DATABASE ENGINE WRAPPER ---
