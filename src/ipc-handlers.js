@@ -88,6 +88,14 @@ export function setupIpcHandlers(ipcMain, dialog) {
     return queryDb(sql, (rows) => rows);
   });
 
+  // --- 📦 LOCAL INVENTORY EXTRACTION CHANNEL ---
+  ipcMain.handle('query-inventory', (event) => {
+    // Selects all tracking metadata from the migrated SQLite Inventory storage table
+    const sql = `SELECT * FROM "Inventory" ORDER BY ItemGroup ASC`;
+
+    return queryDb(sql, (rows) => rows);
+  });
+
   // --- CENTRALIZED DATABASE ENGINE WRAPPER ---
   const queryDb = (sql, cb) => new Promise((res) => {
     const db = new sqlite3.Database('./migrated_data.sqlite');

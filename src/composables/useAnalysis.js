@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { useDebugLogger } from './useDebugLogger'
 
 export function useAnalysis(detectedType) {
-  const ENABLE_DEBUG_ALERTS = true
+  const ENABLE_DEBUG_ALERTS = false
 
   // --- STATE FOR FILTERING & SUMMARY ---
   const totalAmount = ref(0)

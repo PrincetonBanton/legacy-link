@@ -14,7 +14,7 @@
             <td class="cell-id">{{ item.identifier }}</td>
             <td class="cell-text">{{ item.extraInfo || '—' }}</td>
             <td class="cell-num text-green">
-              Php {{ item.value?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+              {{ item.value?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
             </td>
           </tr>
         </tbody>

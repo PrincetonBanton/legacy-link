@@ -3,7 +3,7 @@ import { useDebugLogger } from './useDebugLogger'
 import { useCloudSync } from './useCloudSync'
 
 export function useCloudOperations(detectedType, dateRange, getTableName, getIpc) {
-  const ENABLE_DEBUG_ALERTS = true
+  const ENABLE_DEBUG_ALERTS = false
 
   const cloudRecords = ref([])
   const { logRawPreview } = useDebugLogger()

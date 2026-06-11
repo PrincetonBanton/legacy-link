@@ -5,7 +5,7 @@ export function useCharts(invoiceRecords, blockRecords) {
   const lineChartData = computed(() => {
     const rawList = invoiceRecords.value || []
     
-    // 1. 🔄 Group & aggregate records that share the exact same date string
+    // 1.Group & aggregate records that share the exact same date string
     const dailyAggregation = rawList.reduce((acc, item) => {
       if (!item.date || item.date === 'N/A') return acc
       
@@ -17,7 +17,7 @@ export function useCharts(invoiceRecords, blockRecords) {
       return acc
     }, {})
 
-    // 2. 🗓️ Sort chronologically by timeline dates
+    // 2.Sort chronologically by timeline dates
     const sortedDates = Object.keys(dailyAggregation).sort((a, b) => new Date(a) - new Date(b))
     
     return {
@@ -32,7 +32,7 @@ export function useCharts(invoiceRecords, blockRecords) {
         pointBackgroundColor: '#064e3b',
         borderWidth: 2,
         tension: 0.2, 
-        // 💰 Passes the consolidated sum totals for each individual date
+        // Passes the consolidated sum totals for each individual date
         data: sortedDates.map(dateStr => dailyAggregation[dateStr])
       }]
     }
