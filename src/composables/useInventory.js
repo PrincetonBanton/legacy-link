@@ -1,18 +1,21 @@
 import { ref, computed } from 'vue'
 
 export function useInventory() {
-  const ENABLE_DEBUG_ALERTS = true // 🔎 Set to true to view structural specifications instantly on call
+  const ENABLE_DEBUG_ALERTS = false 
 
-  // --- STATE FOR SUMMARY MANAGEMENT (Replicating useAnalysis structure) ---
+  // --- STATE MANAGEMENT ---
   const rawItems = ref([])
   const isLoading = ref(false)
   const activeViewType = ref('inventory_groups')
   const totalAmount = ref(0) 
+  
+  // 🎯 NEW: Tracks the selected category filter ('all', 'materials', 'chemicals', etc.)
+  const activeCategoryFilter = ref('all')
 
   // --- SAFE ELECTRON RUNTIME CONTEXT INTERFACE ---
   const getIpc = () => window.require ? window.require('electron').ipcRenderer : null
 
-  // --- TEXT VALUE NORMALIZATION COMPASS ---
+  // --- TEXT VALUE NORMALIZATION WORKER ---
   const normalizeGroup = (groupName) => {
     const name = (groupName || '').toLowerCase().trim()
     if (name.includes('material')) return 'materials'
@@ -22,30 +25,16 @@ export function useInventory() {
     return 'materials' 
   }
 
-  // --- 📥 INVENTORY EXTRACTION PIPELINE WORKER ---
+  // --- INVENTORY EXTRACTION PIPELINE WORKER ---
   const loadLegacyInventory = async () => {
     isLoading.value = true
-    const table = 'Inventory'
-    
-    // Fallback system specifications mapping layout
-    const systemProfile = {
-      runtime_environment: 'Material Management System',
-      system_spec: typeof window !== 'undefined' ? 'Electron Core Renderer Client' : 'Headless Node v8'
-    }
-
     try {
-      // 🔥 CONNECTED TO NEWLY REGISTERED SQLITE IPC CHANNEL 
       const res = await getIpc()?.invoke('query-inventory')
-      
-      if (!res || res.error) {
-        alert(`❌ [DEBUG LOG: FAULT]\n\nIPC channel pipeline dropped or returned database execution exception: ${res?.error}`)
-        return
-      }
+      if (!res || res.error) return
 
       const dataPayload = res.data ? res.data : []
       rawItems.value = dataPayload
 
-      // Calculate total asset sum by scrubbing comma tokens from Short Text definitions
       const grandInventorySum = dataPayload.reduce((accumulator, row) => {
         const stock = Number((row.AvailStock || '0').toString().replace(/,/g, ''))
         const cost = Number((row.Cost || '0').toString().replace(/,/g, ''))
@@ -53,23 +42,6 @@ export function useInventory() {
       }, 0)
 
       totalAmount.value = grandInventorySum
-      activeViewType.value = 'inventory_groups'
-
-      // --- 🚨 INTEGRATED EXACT REPLICATED ALERT LOGGER ---
-      if (ENABLE_DEBUG_ALERTS && dataPayload.length > 0) {
-        const firstRow = dataPayload[0]
-        alert(
-          `🖥️ System Profile: ${systemProfile.runtime_environment}\n` +
-          `📂 Query Target Table: ${table}\n` +
-          `☑️ SYSTEM SPEC: ${systemProfile.system_spec}\n` +
-          `📂 SOURCE TABLE: ${table}\n` +
-          `🔍 VALUE MAPPED: AvailStock * Cost\n` +
-          `🔢 RAW ENTRIES COLLECTED: ${dataPayload.length} rows\n\n` +
-          `📊 RAW ENTRY SNAPSHOT SCHEMA (FIRST ROW):\n${JSON.stringify(firstRow, null, 2)}\n\n` +
-          `💰 TARGET FIELD INSTANCE VALUE: "${firstRow.ItemAmount || 'N/A'}"`
-        )
-      }
-
     } catch (err) {
       console.error("Local inventory synchronization fault:", err)
     } finally {
@@ -77,7 +49,7 @@ export function useInventory() {
     }
   }
 
-  // --- 🧮 REACTIVE SUMMARY PRODUCERS ---
+  // --- REACTIVE SUMMARY PRODUCERS ---
   const categoryTotals = computed(() => {
     const totals = { materials: 0, chemicals: 0, fertilizer: 0, fuel_pol: 0 }
     rawItems.value.forEach(item => {
@@ -91,21 +63,29 @@ export function useInventory() {
 
   const overallTotalValue = computed(() => totalAmount.value)
 
-  const rankedInventoryItems = computed(() => {
-    return [...rawItems.value].map(item => {
-      const stock = Number((item.AvailStock || '0').toString().replace(/,/g, ''))
-      const cost = Number((item.Cost || '0').toString().replace(/,/g, ''))
-      return {
-        id: item.InvID,
-        item_code: item.ItemCode || 'UNKNOWN',
-        item_name: item.ItemName || 'Unnamed Item',
-        item_group: item.ItemGroup || 'Unassigned',
-        available_stock: stock,
-        unit_of_measure: item.Unit || 'pcs',
-        unit_cost: cost,
-        computed_total_value: stock * cost
-      }
-    }).sort((a, b) => b.computed_total_value - a.computed_total_value)
+  // 🎯 NEW: Filters the inventory data stream based on selection, then sorts it
+  const filteredAndRankedItems = computed(() => {
+    return [...rawItems.value]
+      .map(item => {
+        const stock = Number((item.AvailStock || '0').toString().replace(/,/g, ''))
+        const cost = Number((item.Cost || '0').toString().replace(/,/g, ''))
+        return {
+          id: item.InvID,
+          item_code: item.ItemCode || 'UNKNOWN',
+          item_name: item.ItemName || 'Unnamed Item',
+          item_group: item.ItemGroup || 'Unassigned',
+          normalized_group: normalizeGroup(item.ItemGroup), // Used for fast filtering matches
+          available_stock: stock,
+          unit_of_measure: item.Unit || 'pcs',
+          unit_cost: cost,
+          computed_total_value: stock * cost
+        }
+      })
+      .filter(item => {
+        if (activeCategoryFilter.value === 'all') return true
+        return item.normalized_group === activeCategoryFilter.value
+      })
+      .sort((a, b) => b.computed_total_value - a.computed_total_value)
   })
 
   const chartData = computed(() => ({
@@ -125,11 +105,12 @@ export function useInventory() {
   const clearInventoryData = () => {
     rawItems.value = []
     totalAmount.value = 0
+    activeCategoryFilter.value = 'all'
   }
 
   return {
     rawItems, isLoading, activeViewType, totalAmount, categoryTotals,
-    overallTotalValue, rankedInventoryItems, chartData,
+    overallTotalValue, filteredAndRankedItems, chartData, activeCategoryFilter,
     getIpc, loadLegacyInventory, clearInventoryData
   }
 }

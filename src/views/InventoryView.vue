@@ -1,23 +1,23 @@
 <template>
   <div class="inventory-view-wrapper">
     <div class="stats-grid-row">
-      <div class="stat-pill overall">
+      <div class="stat-pill overall" :class="{ active: activeCategoryFilter === 'all' }" @click="activeCategoryFilter = 'all'">
         <span class="label">OVERALL TOTAL VALUE</span>
         <span class="value">${{ overallTotalValue.toLocaleString(undefined, {minimumFractionDigits: 2}) }}</span>
       </div>
-      <div class="stat-pill">
+      <div class="stat-pill" :class="{ active: activeCategoryFilter === 'materials' }" @click="activeCategoryFilter = 'materials'">
         <span class="label">MATERIALS</span>
         <span class="value text-sky">${{ categoryTotals.materials.toLocaleString(undefined, {minimumFractionDigits: 2}) }}</span>
       </div>
-      <div class="stat-pill">
+      <div class="stat-pill" :class="{ active: activeCategoryFilter === 'chemicals' }" @click="activeCategoryFilter = 'chemicals'">
         <span class="label">CHEMICALS</span>
         <span class="value text-purple">${{ categoryTotals.chemicals.toLocaleString(undefined, {minimumFractionDigits: 2}) }}</span>
       </div>
-      <div class="stat-pill">
+      <div class="stat-pill" :class="{ active: activeCategoryFilter === 'fertilizer' }" @click="activeCategoryFilter = 'fertilizer'">
         <span class="label">FERTILIZER</span>
         <span class="value text-yellow">${{ categoryTotals.fertilizer.toLocaleString(undefined, {minimumFractionDigits: 2}) }}</span>
       </div>
-      <div class="stat-pill">
+      <div class="stat-pill" :class="{ active: activeCategoryFilter === 'fuel_pol' }" @click="activeCategoryFilter = 'fuel_pol'">
         <span class="label">FUEL / POL</span>
         <span class="value text-red">${{ categoryTotals.fuel_pol.toLocaleString(undefined, {minimumFractionDigits: 2}) }}</span>
       </div>
@@ -25,9 +25,18 @@
 
     <div class="inventory-body-grid">
       <div class="inventory-list-panel">
-        <div class="panel-header">
+        <div class="panel-header flex-header">
           <h3>INVENTORY RANKING (HIGHEST TO LOWEST)</h3>
+          
+          <div class="filter-selector-group">
+            <button :class="{ active: activeCategoryFilter === 'all' }" @click="activeCategoryFilter = 'all'">ALL</button>
+            <button :class="{ active: activeCategoryFilter === 'materials' }" @click="activeCategoryFilter = 'materials'">MATERIALS</button>
+            <button :class="{ active: activeCategoryFilter === 'chemicals' }" @click="activeCategoryFilter = 'chemicals'">CHEMICALS</button>
+            <button :class="{ active: activeCategoryFilter === 'fertilizer' }" @click="activeCategoryFilter = 'fertilizer'">FERTILIZER</button>
+            <button :class="{ active: activeCategoryFilter === 'fuel_pol' }" @click="activeCategoryFilter = 'fuel_pol'">FUEL / POL</button>
+          </div>
         </div>
+        
         <div class="table-scroll-frame">
           <table class="inventory-table">
             <thead>
@@ -41,7 +50,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in rankedInventoryItems" :key="item.id">
+              <tr v-for="item in filteredAndRankedItems" :key="item.id">
                 <td class="code-text">{{ item.item_code }}</td>
                 <td>{{ item.item_name }}</td>
                 <td><span class="pill-category">{{ item.item_group }}</span></td>
@@ -52,8 +61,8 @@
               <tr v-if="isLoading">
                 <td colspan="6" class="empty-msg loading">Fetching inventory metrics from master table...</td>
               </tr>
-              <tr v-else-if="!rankedInventoryItems.length">
-                <td colspan="6" class="empty-msg">No inventory records found in MS Access.</td>
+              <tr v-else-if="!filteredAndRankedItems.length">
+                <td colspan="6" class="empty-msg">No inventory records found matching selection.</td>
               </tr>
             </tbody>
           </table>
@@ -75,9 +84,10 @@ import InventoryDistributionChart from '../components/InventoryDistributionChart
 const { 
   categoryTotals, 
   overallTotalValue, 
-  rankedInventoryItems, 
+  filteredAndRankedItems, // Replaced raw payload stream
   chartData, 
   isLoading,
+  activeCategoryFilter,   // Injected filter state variable
   loadLegacyInventory 
 } = useInventory()
 
@@ -89,8 +99,11 @@ onMounted(async () => {
 <style scoped>
 .inventory-view-wrapper { display: flex; flex-direction: column; gap: 20px; width: 100%; height: 100%; box-sizing: border-box; padding: 1rem 1.5rem; }
 .stats-grid-row { display: flex; gap: 12px; width: 100%; flex-shrink: 0; }
-.stat-pill { background: #1e293b; border: 1px solid #334155; padding: 10px 16px; border-radius: 8px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.stat-pill { background: #1e293b; border: 1px solid #334155; padding: 10px 16px; border-radius: 8px; flex: 1; display: flex; flex-direction: column; gap: 2px; cursor: pointer; transition: all 0.2s ease; }
+.stat-pill:hover { background: #24334d; border-color: #475569; }
+.stat-pill.active { border-color: #38bdf8; background: #0f172a; box-shadow: 0 0 8px rgba(56, 189, 248, 0.2); }
 .stat-pill.overall { background: #0f172a; border-color: #475569; position: relative; }
+.stat-pill.overall.active { border-color: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.2); }
 .stat-pill .label { font-size: 0.6rem; font-weight: 700; color: #64748b; letter-spacing: 0.05em; }
 .stat-pill .value { font-size: 1.2rem; font-weight: 800; color: #fff; }
 .text-sky { color: #38bdf8 !important; }
@@ -100,8 +113,15 @@ onMounted(async () => {
 .inventory-body-grid { display: flex; gap: 20px; width: 100%; flex: 1; min-height: 0; }
 .inventory-list-panel { flex: 0 0 70%; display: flex; flex-direction: column; background: #1e293b; border: 1px solid #334155; border-radius: 12px; min-width: 0; height: 100%; }
 .inventory-graph-panel { flex: 0 0 30%; min-width: 0; height: 100%; }
-.panel-header { padding: 12px 16px; border-bottom: 1px solid #334155; }
-.panel-header h3 { margin: 0; font-size: 0.8rem; font-weight: 800; color: #94a3b8; }
+
+/* Filter Bar Alignment Elements */
+.flex-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #334155; }
+.flex-header h3 { margin: 0; font-size: 0.8rem; font-weight: 800; color: #94a3b8; }
+.filter-selector-group { display: flex; gap: 4px; background: #0f172a; padding: 3px; border-radius: 6px; border: 1px solid #334155; }
+.filter-selector-group button { background: transparent; border: none; color: #64748b; font-size: 0.65rem; font-weight: 800; padding: 4px 10px; border-radius: 4px; cursor: pointer; transition: all 0.15s ease; }
+.filter-selector-group button:hover { color: #cbd5e1; }
+.filter-selector-group button.active { background: #334155; color: #38bdf8; }
+
 .table-scroll-frame { flex: 1; overflow-y: auto; padding: 8px; min-height: 0; }
 .inventory-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }
 .inventory-table th { padding: 10px; font-weight: 700; color: #64748b; border-bottom: 2px solid #334155; font-size: 0.75rem; text-transform: uppercase; }
