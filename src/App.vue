@@ -27,15 +27,17 @@
 
         <div class="header-control-stack">
           <div class="db-connection-manager" :class="{ 'connected': selectedPath }">
-            <button v-if="!selectedPath" @click="handleMdbBrowse" class="btn-header-browse">📂 BROWSE DATABASE</button>
+            <button v-if="!selectedPath" @click="handleMdbBrowse" class="btn-header-browse">BROWSE DATABASE</button>
             <template v-else>
               <div class="db-status-pill">
-                <span class="status-dot"></span>
+                <span class="status-dot"></span>  
                 <span class="filename-text" :title="fileInfo.name">{{ fileInfo.name }}</span>
               </div>
-              <button v-if="!detectedType" @click="handleMdbSync" :disabled="isMigrating" class="btn-header-sync">
-                {{ isMigrating ? '⚡ Syncing...' : 'SYNC DATABASE' }}
+              
+              <button v-if="!detectedType && !isMigrating" @click="handleMdbSync" class="btn-header-sync">
+                SYNC DATABASE
               </button>
+              
               <button @click.stop="resetSelection" class="btn-header-disconnect">DISCONNECT</button>
             </template>
           </div>
@@ -66,7 +68,6 @@
   import DashboardMap from './components/DashboardMap.vue'
   import DashboardSplash from './components/DashboardSplash.vue'
 
-  // View Layout Sandboxes
   import DashboardView from './views/DashboardView.vue'
   import InventoryView from './views/InventoryView.vue'
   import AnalyticsView from './views/AnalyticsView.vue'
@@ -78,7 +79,6 @@
     locations, handleMdbBrowse, handleMdbSync, resetSelection 
   } = useMigration()
 
-  // Dynamic evaluation engine switching components based on string keys
   const currentView = computed(() => {
     if (activeTab.value === 'INVENTORY') return InventoryView
     if (activeTab.value === 'ANALYTICS') return AnalyticsView
@@ -101,7 +101,6 @@
 </script>
 
 <style scoped>
-/* Keep your standard global styling classes intact here unchanged */
 :global(html), :global(body) { margin: 0; padding: 0; background-color: black; }
 .app-layout { display: flex; height: 100vh; width: 100vw; color: #f8fafc; font-family: -apple-system, sans-serif; overflow: hidden; }
 .main-canvas { flex: 1; display: flex; flex-direction: column; overflow: hidden;}
