@@ -52,6 +52,7 @@
           <table class="inventory-table">
             <thead>
               <tr>
+                <th class="num-col">#</th>
                 <th>DESCRIPTION</th>
                 <th>CATEGORY</th>
                 <th class="num">STOCK</th>
@@ -60,7 +61,8 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in searchFilteredItems" :key="item.id">
+              <tr v-for="(item, index) in searchFilteredItems" :key="item.id || index">
+                <td class="num-col index-text">{{ index + 1 }}</td>
                 <td class="interactive-name-cell" @click="triggerSmartSearch(item)">
                   {{ item.item_name }}
                   <span class="hover-search-hint">🔍 Info</span>
@@ -98,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue' // 🛠️ ADDED: watch compiler macro
+import { ref, computed, watch, onMounted } from 'vue'
 import { useInventory } from '../composables/useInventory'
 import InventoryDistributionChart from '../components/InventoryDistributionChart.vue'
 import ItemLookupModal from '../components/ItemLookupModal.vue'
@@ -119,7 +121,6 @@ const selectedItemName = ref('')
 const selectedItemGroup = ref('')
 const searchQuery = ref('')
 
-/* 🛠️ ADDED: Watch category changes to automatically clear search query */
 watch(activeCategoryFilter, () => {
   searchQuery.value = ''
 })
@@ -186,6 +187,10 @@ onMounted(async () => {
 .inventory-table td { padding: 6px 10px; border-bottom: 1px solid #334155; color: #cbd5e1; vertical-align: middle; }
 .inventory-table tr:hover td { background: #24334d; }
 .inventory-table th.num, .inventory-table td.num { text-align: right; }
+
+/* 🛠️ ADDED STYLES FOR THE NUMBERING COLUMN */
+.num-col { width: 35px; text-align: center; padding-left: 5px !important; padding-right: 5px !important; }
+.index-text { color: #64748b !important; font-weight: 600; font-size: 0.72rem; }
 
 .pill-category { font-size: 0.72rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.02em; }
 .highlight { color: #cbd5e1; font-weight: 700; }

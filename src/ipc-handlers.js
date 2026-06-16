@@ -1,4 +1,3 @@
-// src/ipc-handlers.js
 import { runMigration } from './migration-util.js';
 import sqlite3 from 'sqlite3';
 
@@ -77,14 +76,17 @@ export function setupIpcHandlers(ipcMain, dialog) {
 
   // --- ☁️ FIXED CLOUD SNAPSHOT DATAPACK CHANNEL ---
   ipcMain.handle('check-raw-cloud-data', (event, { table, startDate, endDate }) => {
-    const dateColumn = table === 'DRDetails' ? 'DRDate' : 'MISDate';
-    
-    // Formatted query matching SQLite quotes syntax and date string boundaries
-    const sql = `SELECT * FROM "${table}" 
-                 WHERE ${dateColumn} BETWEEN '${startDate}' AND '${endDate}'
-                 ORDER BY ${dateColumn} ASC`;
+    let sql = '';
 
-    // 🛠️ FIX: Routes directly through your working connection wrapper utility
+    if (table === 'Inventory') {
+      sql = `SELECT * FROM "Inventory" ORDER BY ItemGroup ASC`;
+    } else {
+      const dateColumn = table === 'DRDetails' ? 'DRDate' : 'MISDate';
+      sql = `SELECT * FROM "${table}" 
+             WHERE ${dateColumn} BETWEEN '${startDate}' AND '${endDate}'
+             ORDER BY ${dateColumn} ASC`;
+    }
+
     return queryDb(sql, (rows) => rows);
   });
 
@@ -92,23 +94,6 @@ export function setupIpcHandlers(ipcMain, dialog) {
   ipcMain.handle('query-inventory', (event) => {
     const sql = `SELECT * FROM "Inventory" ORDER BY ItemGroup ASC`;
     return queryDb(sql, (rows) => rows);
-  });
-
-  // --- 🤖 OPTIONAL: BACKEND INTELLIGENT RESEARCH ENGINE ---
-  ipcMain.handle('ask-ai-about-item', async (event, { name, group }) => {
-    try {
-      // Example of integration structure if pulling from an API:
-      // const response = await fetch("https://api.yourprovider.com/v1/chat/completions", ...);
-      
-      // Local fallback parsing structure if no cloud API is configured:
-      return { 
-        data: `Technical Profile Overview:\n` +
-              `This asset categorized under [${group}] functions primarily within industrial inventory arrays. ` +
-              `Standard handling parameters require climate validation and regular stock synchronization checkouts.`
-      };
-    } catch (err) {
-      return { error: `AI lookup pipe aborted: ${err.message}` };
-    }
   });
 
   // --- CENTRALIZED DATABASE ENGINE WRAPPER ---
