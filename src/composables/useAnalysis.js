@@ -1,13 +1,16 @@
 import { ref } from 'vue'
 import { useDebugLogger } from './useDebugLogger'
 
-export function useAnalysis(detectedType) {
-  const ENABLE_DEBUG_ALERTS = false
+export function useAnalysis(detectedType, activeArea) {
+  const ENABLE_DEBUG_ALERTS = true
 
   // --- STATE FOR FILTERING & SUMMARY ---
   const totalAmount = ref(0)
   const invoiceRecords = ref([])
   const blockRecords = ref([])
+  
+  // 🍇 STATE FOR PRODUCT PIE CHART AGGREGATIONS
+  const productRecords = ref([])
   const activeViewType = ref('')
 
   const today = new Date()
@@ -25,8 +28,8 @@ export function useAnalysis(detectedType) {
   const getTableName = () => detectedType.value === "Production System" ? "DRDetails" : "MISDetails"
   const getIpc = () => window.require ? window.require('electron').ipcRenderer : null
 
-  // Initialize the local log utility
-  const { logFilteredInvoices, logBlockSummary } = useDebugLogger()
+  // Initialize the local log utility containing our alert hooks
+  const { logFilteredInvoices, logBlockSummary, logProductSummary } = useDebugLogger()
 
   // --- 1. FILTER BY DATE WORKER (LINE GRAPH - INVOICES) ---
   const handleExecuteInvoices = async () => {
@@ -102,15 +105,64 @@ export function useAnalysis(detectedType) {
     }
   }
 
+  // --- 🍇 3. DYNAMIC PRODUCT/MATERIAL PIE DATA AGGREGATION WORKER ---
+  const handleExecuteProducts = async () => {
+    if (!detectedType.value) return
+    
+    const table = getTableName()
+    const isProduction = detectedType.value === "Production System"
+    
+    // Resolve targeted columns to supply to visual logger alert strings
+    const productCol = isProduction ? "DRProduct" : "MISGroup"
+    const amountCol = isProduction ? "DRAmount" : "MISAmount"
+
+    try {
+      const res = await getIpc()?.invoke('check-product-data', {
+        table,
+        startDate: dateRange.value.start,
+        endDate: dateRange.value.end
+      })
+
+      if (!res || res.error) {
+        productRecords.value = []
+        return
+      }
+
+      if (!res.data || res.data.length === 0) {
+        productRecords.value = []
+        if (ENABLE_DEBUG_ALERTS) {
+          logProductSummary(res, detectedType.value, table, dateRange.value, productCol, amountCol)
+        }
+        return
+      }
+
+      productRecords.value = res.data.map(row => ({
+        identifier: row.CleanProduct || (isProduction ? 'Unnamed Crop' : 'Uncategorized Material'),
+        value: Number(row.ProductSumTotal) || 0,
+        extraInfo: `${row.RowCount} batches`
+      }))
+      
+      // Trigger debugger alert wrapper natively if active flag is high
+      if (ENABLE_DEBUG_ALERTS) {
+        logProductSummary(res, detectedType.value, table, dateRange.value, productCol, amountCol)
+      }
+
+    } catch (e) {
+      console.error("❌ Error fetching product records:", e)
+      productRecords.value = []
+    }
+  }
+
   const clearAnalysisData = () => {
     totalAmount.value = 0
     invoiceRecords.value = []
     blockRecords.value = []
+    productRecords.value = []
     activeViewType.value = ''
   }
 
   return {
-    dateRange, totalAmount, invoiceRecords, blockRecords, activeViewType,
-    getTableName, getIpc, handleExecuteInvoices, handleExecuteBlocks, clearAnalysisData
+    dateRange, totalAmount, invoiceRecords, blockRecords, productRecords, activeViewType,
+    getTableName, getIpc, handleExecuteInvoices, handleExecuteBlocks, handleExecuteProducts, clearAnalysisData
   }
 }

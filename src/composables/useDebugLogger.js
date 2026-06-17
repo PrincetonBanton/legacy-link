@@ -69,6 +69,32 @@ export function useDebugLogger() {
     )
   }
 
+  // 🍇 NEW: Debug logger alert rule handler for the Product/Material Category aggregations
+  const logProductSummary = (res, detectedType, table, dateRange, productCol, amountCol) => {
+    alert(`📜 PRODUCT/GROUP PIE SQL EXECUTED:\n\n"${res.executedSql}"`)
+
+    if (!res.data || res.data.length === 0) {
+      alert(`⚠️ Notice: Product query returned successfully but contained 0 matching rows inside the window.`)
+      return
+    }
+
+    const formattedProductsVertical = res.data.map(row => {
+      const formattedAmount = row.ProductSumTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      return `• [${row.CleanProduct || 'NULL'}] ➔ Php ${formattedAmount} (${row.RowCount} references)`
+    }).join("\n")
+
+    alert(
+      `📊 DYNAMIC COMMODITY & CATEGORY AGGREGATION SNAPSHOT\n` +
+      `----------------------------------------\n` +
+      `🖥️ System Profile: ${detectedType}\n` +
+      `📂 Query Target Table: ${table}\n` +
+      `📅 Date Range Window: [${dateRange.start}] to [${dateRange.end}]\n` +
+      `🏷️ Active Column Targets: Field -> [${productCol}] | Sum -> [${amountCol}]\n` +
+      `🔢 Distinct Aggregated Groupings Identified: ${res.data.length}\n\n` +
+      `📋 Value Breakdown Matrix:\n${formattedProductsVertical}`
+    )
+  }
+
   const logRawPreview = (res, detectedType, table, targetCol, dateRange) => {
     if (!res.data || res.data.length === 0) return
     const firstRow = res.data[0]
@@ -89,6 +115,7 @@ export function useDebugLogger() {
     logLocalDataSnapshot,
     logRawPreview,
     logFilteredInvoices,
-    logBlockSummary
+    logBlockSummary,
+    logProductSummary // 🍇 Exposed to hook up into useAnalysis
   }
 }

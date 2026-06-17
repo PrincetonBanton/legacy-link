@@ -74,6 +74,28 @@ export function setupIpcHandlers(ipcMain, dialog) {
     return queryDb(sql, (rows) => rows);
   });
 
+  // --- 🍇 NEW FEATURE: PRODUCT PIE GRAPH VOLUMES CHANNEL ---
+  ipcMain.handle('check-product-data', (event, { table, startDate, endDate }) => {
+    const isProduction = table === "DRDetails";
+    
+    // Determine target column based on whether the source table is Production or Material Management
+    const dateCol = isProduction ? "DRDate" : "MISDate";
+    const productCol = isProduction ? "DRProduct" : "MISItem";
+    const amountCol = isProduction ? "DRAmount" : "MISAmount";
+
+    const sql = `SELECT 
+                  ${dateCol} as TransactionDate,
+                  TRIM(${productCol}) as CleanProduct,
+                  COUNT(*) as RowCount,
+                  SUM(CAST(REPLACE(${amountCol}, ',', '') AS DECIMAL)) as ProductSumTotal
+                FROM "${table}" 
+                WHERE ${dateCol} BETWEEN '${startDate}' AND '${endDate}'
+                  AND ${productCol} > ''
+                GROUP BY TRIM(${productCol})`;
+
+    return queryDb(sql, (rows) => rows);
+  });
+
   // --- ☁️ FIXED CLOUD SNAPSHOT DATAPACK CHANNEL ---
   ipcMain.handle('check-raw-cloud-data', (event, { table, startDate, endDate }) => {
     let sql = '';
