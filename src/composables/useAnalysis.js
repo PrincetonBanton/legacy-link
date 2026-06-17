@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { useDebugLogger } from './useDebugLogger'
 
 export function useAnalysis(detectedType, activeArea) {
-  const ENABLE_DEBUG_ALERTS = true
+  const ENABLE_DEBUG_ALERTS = false
 
   // --- STATE FOR FILTERING & SUMMARY ---
   const totalAmount = ref(0)
@@ -105,18 +105,20 @@ export function useAnalysis(detectedType, activeArea) {
     }
   }
 
-  // --- 🍇 3. DYNAMIC PRODUCT/MATERIAL PIE DATA AGGREGATION WORKER ---
+// --- 🍇 DYNAMIC PRODUCT & MATERIAL MATERIAL AGGREGATION ---
   const handleExecuteProducts = async () => {
     if (!detectedType.value) return
     
     const table = getTableName()
     const isProduction = detectedType.value === "Production System"
     
-    // Resolve targeted columns to supply to visual logger alert strings
     const productCol = isProduction ? "DRProduct" : "MISGroup"
     const amountCol = isProduction ? "DRAmount" : "MISAmount"
 
     try {
+      // 1. Clear out state explicitly to force Vue to teardown old chart references
+      productRecords.value = []
+
       const res = await getIpc()?.invoke('check-product-data', {
         table,
         startDate: dateRange.value.start,
@@ -124,31 +126,30 @@ export function useAnalysis(detectedType, activeArea) {
       })
 
       if (!res || res.error) {
-        productRecords.value = []
         return
       }
 
       if (!res.data || res.data.length === 0) {
-        productRecords.value = []
         if (ENABLE_DEBUG_ALERTS) {
           logProductSummary(res, detectedType.value, table, dateRange.value, productCol, amountCol)
         }
         return
       }
 
+      // 2. Standardize mapping keys so Chart.js deep watchers notice the switch
       productRecords.value = res.data.map(row => ({
-        identifier: row.CleanProduct || (isProduction ? 'Unnamed Crop' : 'Uncategorized Material'),
-        value: Number(row.ProductSumTotal) || 0,
-        extraInfo: `${row.RowCount} batches`
+        identifier: String(row.CleanProduct || '').trim() || (isProduction ? 'Unnamed Crop' : 'Uncategorized Group'),
+        value: parseFloat(row.ProductSumTotal) || 0,
+        extraInfo: `${row.RowCount || 0} references`
       }))
       
-      // Trigger debugger alert wrapper natively if active flag is high
+      // Trigger debugger alert natively
       if (ENABLE_DEBUG_ALERTS) {
         logProductSummary(res, detectedType.value, table, dateRange.value, productCol, amountCol)
       }
 
     } catch (e) {
-      console.error("❌ Error fetching product records:", e)
+      console.error("❌ Error running product records mapping pipe:", e)
       productRecords.value = []
     }
   }

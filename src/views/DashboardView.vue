@@ -40,7 +40,7 @@
             <DashboardLineGraph :chart-data="lineChartData" :options="chartOptions" />
             <DashboardBarGraph :chart-data="barChartData" :options="chartOptions" />
         </div>
-        <div class="right-metrics-column">
+        <div class="right-metrics-column">  
           <DashboardTop10 
             :matched-records="blockRecords" 
             :active-view-type="activeViewType" 
@@ -48,15 +48,9 @@
           />
           
           <DashboardProductPie 
-            v-if="detectedType === 'Production System'"
             :product-records="productRecords"
             :main-table-info="mainTableInfo"
           />
-          
-          <div v-else class="logistics-placeholder-card">
-            <h4>Material Track Active</h4>
-            <p>Product line distribution maps are exclusive to branch harvest streams.</p>
-          </div>
         </div>
       </div>
     </div>

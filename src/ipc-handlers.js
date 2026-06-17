@@ -80,7 +80,7 @@ export function setupIpcHandlers(ipcMain, dialog) {
     
     // Determine target column based on whether the source table is Production or Material Management
     const dateCol = isProduction ? "DRDate" : "MISDate";
-    const productCol = isProduction ? "DRProduct" : "MISItem";
+    const productCol = isProduction ? "DRProduct" : "MISGroup";
     const amountCol = isProduction ? "DRAmount" : "MISAmount";
 
     const sql = `SELECT 
